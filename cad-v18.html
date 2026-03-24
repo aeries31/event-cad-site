@@ -67,6 +67,9 @@ body{font-family:Arial,Helvetica,sans-serif;background:#d8d8d8;height:100vh;over
   <button class="tb" id="btnNewCad" style="background:#424242;color:#fff;border-color:#424242">NEW CAD</button>
   <button class="tb" id="btnSaveCad" style="background:#00796b;color:#fff;border-color:#00796b">SAVE CAD SYNC</button>
   <button class="tb" id="btnLoadCad" style="background:#455a64;color:#fff;border-color:#455a64">LOAD CAD SYNC</button>
+  <button class="tb" id="btnFit" style="background:#546e7a;color:#fff;border-color:#546e7a">FIT</button>
+  <button class="tb" id="btnZoomOut">-</button>
+  <button class="tb" id="btnZoomIn">+</button>
   <button class="tb" id="btnDetectWalls" style="background:#6a1b9a;color:#fff;border-color:#6a1b9a">DETECT WALLS</button>
   <button class="tb" id="btnUndo" style="background:#1565c0;color:#fff;border-color:#1565c0">&#8630; UNDO</button>
   <button class="tb" id="btnExport" style="background:#2e7d32;color:#fff;border-color:#2e7d32">&#9660; EXPORT PDF</button>
@@ -1004,9 +1007,9 @@ document.getElementById("btnSaveCad").onclick=saveCadProject;
 document.getElementById("btnLoadCad").onclick=loadCadProject;
 document.getElementById("loadModalClose").onclick=closeLoadModal;
 document.getElementById("loadModal").addEventListener("click",function(e){ if(e.target && e.target.id==="loadModal") closeLoadModal(); });
-document.getElementById("btnFit").onclick=fitCadToView;
-document.getElementById("btnZoomIn").onclick=zoomInCad;
-document.getElementById("btnZoomOut").onclick=zoomOutCad;
+var _fit=document.getElementById("btnFit"); if(_fit) _fit.onclick=fitCadToView;
+var _zin=document.getElementById("btnZoomIn"); if(_zin) _zin.onclick=zoomInCad;
+var _zout=document.getElementById("btnZoomOut"); if(_zout) _zout.onclick=zoomOutCad;
 window.addEventListener("resize", function(){ fitCadToView(); });
 document.getElementById("btnDetectWalls").onclick=function(){if(!pdfBg){alert("Upload a PDF first.");return;}detectHotelWallsFromPdf(function(ok){if(!ok)alert("Could not detect walls on this PDF.");render();});};
 document.getElementById("btnClearElems").onclick=function(){snapshot();clearElements()};
