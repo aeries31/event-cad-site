@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0151)file:///Users/robwest/Library/CloudStorage/OneDrive-TEKProductions/Desktop/event-cad-generator-original-plus-detect-walls-v7-measure-delete-recent.html -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Event CAD Generator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -40,30 +40,58 @@ body{font-family:Arial,Helvetica,sans-serif;background:#d8d8d8;height:100vh;over
 .elem-grid button{padding:6px 9px;font-size:11px;font-weight:600;font-family:Arial,Helvetica,sans-serif;border:1px solid #bbb;border-radius:4px;cursor:pointer;background:#f8f8f8;color:#444}
 .elem-grid button:hover{background:#e0e0e0}
 .hint{font-size:12px;color:#777;font-style:italic;margin:4px 0 8px}
+.load-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999}
+.load-modal.show{display:flex}
+.load-card{width:min(520px,92vw);max-height:80vh;overflow:auto;background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:14px}
+.load-title{font-size:16px;font-weight:800;color:#222;margin-bottom:10px;font-family:Arial,Helvetica,sans-serif}
+.load-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.load-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fafafa;font-family:Arial,Helvetica,sans-serif}
+.load-name{font-size:14px;font-weight:700;color:#222}
+.load-date{font-size:12px;color:#666}
+.load-actions{display:flex;gap:8px;flex-wrap:wrap}
+.load-btn{padding:8px 12px;border-radius:6px;border:1px solid #bbb;background:#f0f0f0;color:#333;font-weight:700;cursor:pointer;font-family:Arial,Helvetica,sans-serif}
+.load-btn.primary{background:#455a64;color:#fff;border-color:#455a64}
+.load-empty{font-size:13px;color:#666;padding:8px 0}
+
 </style>
 </head>
 <body>
 <input type="file" id="pdfIn" accept=".pdf" style="display:none">
 <div class="toolbar">
   <div style="display:flex;align-items:center;gap:8px">
-    <div class="logo-box">◆</div>
+    <div class="logo-box">&#9670;</div>
     <div><div style="font-size:16px;font-weight:900;color:#111;letter-spacing:1.5px">CAD GENERATOR</div><div style="font-size:9px;color:#999;letter-spacing:3px">EVENT PRODUCTION LAYOUT</div></div>
   </div>
   <div style="flex:1"></div>
-  <button class="tb" style="background:#cc0000;color:#fff;border-color:#cc0000" id="btnUpload">▲ UPLOAD PDF</button>
+  <button class="tb" style="background:#cc0000;color:#fff;border-color:#cc0000" id="btnUpload">&#9650; UPLOAD PDF</button>
+  <button class="tb" id="btnNewCad" style="background:#424242;color:#fff;border-color:#424242">NEW CAD</button>
+  <button class="tb" id="btnSaveCad" style="background:#00796b;color:#fff;border-color:#00796b">SAVE CAD SYNC</button>
+  <button class="tb" id="btnLoadCad" style="background:#455a64;color:#fff;border-color:#455a64">LOAD CAD SYNC</button>
+  <button class="tb" id="btnFit" style="background:#546e7a;color:#fff;border-color:#546e7a">FIT</button>
+  <button class="tb" id="btnZoomOut">-</button>
+  <button class="tb" id="btnZoomIn">+</button>
   <button class="tb" id="btnDetectWalls" style="background:#6a1b9a;color:#fff;border-color:#6a1b9a">DETECT WALLS</button>
-  <button class="tb" id="btnUndo" style="background:#1565c0;color:#fff;border-color:#1565c0">↶ UNDO</button>
-  <button class="tb" id="btnExport" style="background:#2e7d32;color:#fff;border-color:#2e7d32">▼ EXPORT PDF</button>
+  <button class="tb" id="btnUndo" style="background:#1565c0;color:#fff;border-color:#1565c0">&#8630; UNDO</button>
+  <button class="tb" id="btnExport" style="background:#2e7d32;color:#fff;border-color:#2e7d32">&#9660; EXPORT PDF</button>
   <button class="tb" id="btnClearElems" style="background:#ff6600;color:#fff;border-color:#ff6600">CLEAR ELEMENTS</button>
   <button class="tb" id="btnClearPdf" style="background:#8e24aa;color:#fff;border-color:#8e24aa">DELETE PDF</button>
-  <button class="tb" id="togP">◀ HIDE</button>
-  <div id="stats" style="font-size:13px;color:#555;padding:0 10px;border-left:1px solid #ddd"><span style="font-size:15px;font-weight:900;color:#cc0000">0 PEOPLE</span> · <b style="color:#333">0</b> tables · <b style="color:#333">8</b>/tbl · <span style="color:#0077b6;font-weight:700">15.7" gap</span> · <b style="color:#333">0</b> elem</div>
+  <button class="tb" id="togP">&#9664; HIDE</button>
+  <div id="stats" style="font-size:13px;color:#555;padding:0 10px;border-left:1px solid #ddd"></div>
 </div>
 <div class="main-wrap">
-  <div class="panel" id="panel"><div class="ptabs" id="ptabs"><button class="on" onclick="tab=&#39;event&#39;;render()">EVENT</button><button class="" onclick="tab=&#39;stage&#39;;render()">STAGE</button><button class="" onclick="tab=&#39;tables&#39;;render()">TABLES</button><button class="" onclick="tab=&#39;prod&#39;;render()">PROD</button><button class="" onclick="tab=&#39;tech&#39;;render()">TECH</button></div><div id="pc"><div class="shd">EVENT INFO</div><div class="fr"><label>Event Name</label><input type="text" value="EVENT NAME" style="width:120px;text-align:left" onchange="cfg.eventName=this.value;render()"></div><div class="fr"><label>Session</label><input type="text" value="GENERAL SESSION" style="width:120px;text-align:left" onchange="cfg.sessionName=this.value;render()"></div><div class="fr"><label>Venue</label><input type="text" value="VENUE NAME" style="width:120px;text-align:left" onchange="cfg.venueName=this.value;render()"></div><div class="fr"><label>Location</label><input type="text" value="CITY, STATE" style="width:120px;text-align:left" onchange="cfg.location=this.value;render()"></div><div class="fr"><label>Room</label><input type="text" value="BALLROOM" style="width:120px;text-align:left" onchange="cfg.roomName=this.value;render()"></div><div class="fr"><label>Start Date</label><input type="date" value="2026-03-22" style="width:120px;text-align:left" onchange="cfg.startDate=this.value;render()"></div><div class="fr"><label>End Date</label><input type="date" value="2026-03-24" style="width:120px;text-align:left" onchange="cfg.endDate=this.value;render()"></div><div class="hint">Upload PDF, then use DETECT WALLS to align the CAD walls to the room.</div><div class="fr"><label>Drawn By</label><input type="text" value="CAD OPERATOR" style="width:120px;text-align:left" onchange="cfg.drawnBy=this.value;render()"></div><div class="fr"><label>Sheet #</label><input type="text" value="01" style="width:70px;text-align:left" onchange="cfg.sheetNum=this.value;render()"></div><div class="fr"><label>Version #</label><input type="text" value="001" style="width:70px;text-align:left" onchange="cfg.versionNum=this.value;render()"></div><div class="shd">ROOM</div><div class="fr"><label>Width (ft)</label><input type="number" value="133" style="width:70px;text-align:right" onchange="cfg.roomW=Number(this.value);render()"></div><div class="fr"><label>Depth (ft)</label><input type="number" value="89" style="width:70px;text-align:right" onchange="cfg.roomH=Number(this.value);render()"></div><div class="fr"><label>Notes</label><input type="text" value="" style="width:120px;text-align:left" onchange="cfg.notes=this.value;render()"></div></div><div id="mrd"></div></div>
+  <div class="panel" id="panel"><div class="ptabs" id="ptabs"></div><div id="pc"></div><div id="mrd"></div></div>
   <div class="cvw" id="cvw">
     <div class="mbanner" id="mb" style="display:none"><span id="mbt"></span></div>
-    <svg id="cad" xmlns="http://www.w3.org/2000/svg" style="background: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.25) 0px 4px 20px; display: block; cursor: default;" width="1716" height="1256" viewBox="0 0 1716 1256"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#ccc" stroke-width="0.5"></line></pattern></defs><line x1="60" y1="60" x2="1656" y2="60" stroke="#111" stroke-width="3.5" stroke-linecap="square"></line><line x1="60" y1="1128" x2="1656" y2="1128" stroke="#111" stroke-width="3.5" stroke-linecap="square"></line><line x1="60" y1="60" x2="60" y2="1128" stroke="#111" stroke-width="3.5" stroke-linecap="square"></line><line x1="1656" y1="60" x2="1656" y2="1128" stroke="#111" stroke-width="3.5" stroke-linecap="square"></line><text x="858" y="52" text-anchor="middle" fill="#444" font-size="9" font-family="Arial,Helvetica,sans-serif" font-weight="700">133' x 89' — BALLROOM</text><rect x="846" y="1099" width="24" height="14" rx="3" fill="#f5f5f5" stroke="#7b1fa2" stroke-width="1.5"></rect><circle cx="858" cy="1106" r="4" fill="#7b1fa2" opacity="0.6"></circle><text x="858" y="1094" text-anchor="middle" fill="#7b1fa2" font-size="7" font-weight="800" font-family="Arial,Helvetica,sans-serif">8'h Robo Cam</text><line x1="858" y1="1106" x2="831.4031814004794" y2="1020.0197159786954" stroke="#7b1fa2" stroke-width="0.5" stroke-dasharray="4 3" opacity="0.35"></line><line x1="858" y1="1106" x2="884.5968185995206" y2="1020.0197159786954" stroke="#7b1fa2" stroke-width="0.5" stroke-dasharray="4 3" opacity="0.35"></line><rect x="823" y="1126" width="70" height="4" fill="#cc0000" opacity="0.25"></rect><text x="858" y="1144" text-anchor="middle" fill="#cc0000" font-size="7" font-weight="800" font-family="Arial,Helvetica,sans-serif">Attendee Entrance</text><rect x="1558" y="64" width="90" height="34" rx="3" fill="#fff" stroke="#cc0000" stroke-width="1.2" opacity="0.95"></rect><text x="1603" y="76" text-anchor="middle" fill="#cc0000" font-size="11" font-weight="900" font-family="Arial,Helvetica,sans-serif">0 PEOPLE</text><text x="1603" y="90" text-anchor="middle" fill="#555" font-size="7" font-family="Arial,Helvetica,sans-serif">0 tbls · 8/tbl · 15.7" gap</text><rect x="60" y="1176" width="1596" height="68" fill="#fffde7" stroke="#222" stroke-width="2"></rect><line x1="634.56" y1="1176" x2="634.56" y2="1244" stroke="#222" stroke-width="0.8"></line><line x1="1081.44" y1="1176" x2="1081.44" y2="1244" stroke="#222" stroke-width="0.8"></line><line x1="1368.72" y1="1176" x2="1368.72" y2="1244" stroke="#222" stroke-width="0.8"></line><text x="66" y="1189" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">EVENT NAME:</text><text x="122" y="1189" fill="#111" font-size="7" font-weight="800" font-family="Arial,Helvetica,sans-serif">EVENT NAME</text><text x="66" y="1200" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">SESSION:</text><text x="122" y="1200" fill="#111" font-size="7" font-weight="800" font-family="Arial,Helvetica,sans-serif">GENERAL SESSION</text><text x="66" y="1211" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">START DATE:</text><text x="122" y="1211" fill="#111" font-size="7" font-weight="400" font-family="Arial,Helvetica,sans-serif">2026-03-22</text><text x="66" y="1222" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">END DATE:</text><text x="122" y="1222" fill="#111" font-size="7" font-weight="400" font-family="Arial,Helvetica,sans-serif">2026-03-24</text><text x="66" y="1236" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">SEATING:</text><text x="110" y="1236" fill="#111" font-size="6" font-family="Arial,Helvetica,sans-serif">(0) ppl - (0) 72" Crescents of 8</text><text x="640.56" y="1189" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">VENUE:</text><text x="688.56" y="1189" fill="#111" font-size="7" font-weight="800" font-family="Arial,Helvetica,sans-serif">VENUE NAME</text><text x="640.56" y="1200" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">LOCATION:</text><text x="688.56" y="1200" fill="#111" font-size="7" font-weight="400" font-family="Arial,Helvetica,sans-serif">CITY, STATE</text><text x="640.56" y="1211" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">ROOM:</text><text x="688.56" y="1211" fill="#111" font-size="7" font-weight="800" font-family="Arial,Helvetica,sans-serif">BALLROOM</text><text x="640.56" y="1226" fill="#777" font-size="6" font-family="Arial,Helvetica,sans-serif">DRAWN BY:</text><text x="688.56" y="1226" fill="#111" font-size="7" font-weight="400" font-family="Arial,Helvetica,sans-serif">CAD OPERATOR</text><text x="1087.44" y="1188" fill="#777" font-size="6" font-weight="700" font-family="Arial,Helvetica,sans-serif">DIMENSIONS:</text><text x="1087.44" y="1200" fill="#111" font-size="7" font-family="Arial,Helvetica,sans-serif">133' x 89'</text><text x="1087.44" y="1211" fill="#111" font-size="7" font-family="Arial,Helvetica,sans-serif">36' x 16' @24"</text><text x="1087.44" y="1224" fill="#777" font-size="6" font-weight="700" font-family="Arial,Helvetica,sans-serif">NOTES:</text><text x="1087.44" y="1236" fill="#111" font-size="6" font-family="Arial,Helvetica,sans-serif">ENTER NOTES HERE</text><text x="1374.72" y="1190" fill="#777" font-size="7" font-weight="700" font-family="Arial,Helvetica,sans-serif">SHEET #</text><text x="1512.3600000000001" y="1206" text-anchor="middle" fill="#111" font-size="16" font-weight="900" font-family="Arial,Helvetica,sans-serif">01</text><line x1="1368.72" y1="1212" x2="1656" y2="1212" stroke="#222" stroke-width="0.6"></line><text x="1374.72" y="1224" fill="#777" font-size="7" font-weight="700" font-family="Arial,Helvetica,sans-serif">VERSION #</text><rect x="1370.72" y="1226" width="283.28" height="16" fill="#ffe082" stroke="#f9a825" stroke-width="0.8" rx="2"></rect><text x="1512.3600000000001" y="1238" text-anchor="middle" fill="#cc0000" font-size="14" font-weight="900" font-family="Arial,Helvetica,sans-serif">001</text></svg>
+    <svg id="cad" xmlns="http://www.w3.org/2000/svg" style="background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.25);display:block"></svg>
+  </div>
+</div>
+<div class="load-modal" id="loadModal">
+  <div class="load-card">
+    <div class="load-title">Load CAD Sync</div>
+    <div id="loadList" class="load-list"></div>
+    <div class="load-actions">
+      <button class="load-btn" id="loadModalClose">Close</button>
+    </div>
   </div>
 </div>
 <script>
@@ -141,7 +169,7 @@ var tables=[],clientTables=[],screens=[],elems=[];
 var selection=[]; // [{id:'abc',tp:'table'},{id:'scr_x',tp:'screen'}...]
 var dragId=null,dragOff={x:0,y:0},dragType="table",dragMulti=false;
 var multiOffsets=[]; // [{id,tp,dx,dy}] for dragging multiple
-var mode="select",pdfBg=null,pdfPageW=0,pdfPageH=0,pdfWallBox=null,tab="event",showPanel=true;
+var mode="select",pdfBg=null,pdfPageW=0,pdfPageH=0,pdfWallBox=null,tab="event",showPanel=true,currentCadName="Untitled CAD",SYNC_API_BASE="/api/projects",viewZoom=1;
 
 // Custom layout: array of numbers, each = tables in that row
 var customLayout=[];
@@ -235,12 +263,12 @@ function chairSpacing(){
 }
 
 function facingForWall(){
-  // All tables face the same direction: chairs (+Y local) toward stage wall
-  // rotate(0) = chairs point down (+Y screen). So:
-  // stage top: chairs face up = rotate(180)
-  // stage bottom: chairs face down = rotate(0)
-  // stage left: chairs face left = rotate(90)  
-  // stage right: chairs face right = rotate(270)
+  // rotate(0) means chairs on +Y side (downscreen)
+  // To face the stage wall:
+  // stage top -> chairs should face up => 180
+  // stage bottom -> chairs should face down => 0
+  // stage left -> chairs should face left => 90
+  // stage right -> chairs should face right => 270
   var map={top:180,bottom:0,left:90,right:270};
   return map[cfg.stageWall]||0;
 }
@@ -334,6 +362,175 @@ function detectHotelWallsFromPdf(callback){
   img.src = pdfBg;
 }
 
+
+function addConfidencePair(type){
+  if(!cfg.showStage){ alert("Show stage first."); return; }
+  snapshot();
+  var sf=sFront(), wall=cfg.stageWall;
+  var monW = (type==="CONF_MON_SM") ? 48 : 60;
+  var monH = 10;
+  var gap = 8;
+  var rot = (wall==="left" || wall==="right") ? 90 : 0;
+
+  var x1=sf.x, y1=sf.y, x2=sf.x, y2=sf.y;
+
+  if(wall==="top"){
+    x1 = sf.x - (monW/2 + gap/2);
+    x2 = sf.x + (monW/2 + gap/2);
+    y1 = sf.y + 18;
+    y2 = sf.y + 18;
+  }else if(wall==="bottom"){
+    x1 = sf.x - (monW/2 + gap/2);
+    x2 = sf.x + (monW/2 + gap/2);
+    y1 = sf.y - 18;
+    y2 = sf.y - 18;
+  }else if(wall==="left"){
+    x1 = sf.x + 18;
+    x2 = sf.x + 18;
+    y1 = sf.y - (monW/2 + gap/2);
+    y2 = sf.y + (monW/2 + gap/2);
+  }else{
+    x1 = sf.x - 18;
+    x2 = sf.x - 18;
+    y1 = sf.y - (monW/2 + gap/2);
+    y2 = sf.y + (monW/2 + gap/2);
+  }
+
+  elems.push({
+    id:"el_"+uid(),
+    type:type,
+    label:(type==="CONF_MON_SM"?"CONF. MON (SM)":"CONFIDENCE MONITOR"),
+    x:x1,y:y1,w:monW,h:monH,color:"#00838f",rot:rot
+  });
+  elems.push({
+    id:"el_"+uid(),
+    type:type,
+    label:(type==="CONF_MON_SM"?"CONF. MON (SM)":"CONFIDENCE MONITOR"),
+    x:x2,y:y2,w:monW,h:monH,color:"#00838f",rot:rot
+  });
+  render();
+}
+
+
+function addPipeDrapeWallToScreen(){
+  if(!cfg.showScreens || !screens.length){ alert("Show screens first."); return; }
+  snapshot();
+  elems = elems.filter(function(el){ return el.autoPdKind!=="wallScreen"; });
+  var m=met();
+  for(var i=0;i<screens.length;i++){
+    var sc=screens[i];
+    if(cfg.stageWall==="top" || cfg.stageWall==="bottom"){
+      if(sc.x < m.rX + m.rW/2){
+        var leftEnd = sc.x - (cfg.screenW*PX)/2;
+        var lenL = Math.max(12, leftEnd - m.rX);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:m.rX + lenL/2,y:sc.y,w:lenL,h:8,color:"#6d4c41",rot:0,autoPdKind:"wallScreen"});
+      }else{
+        var rightStart = sc.x + (cfg.screenW*PX)/2;
+        var lenR = Math.max(12, (m.rX+m.rW) - rightStart);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:rightStart + lenR/2,y:sc.y,w:lenR,h:8,color:"#6d4c41",rot:0,autoPdKind:"wallScreen"});
+      }
+    }else{
+      if(sc.y < m.rY + m.rH/2){
+        var topLen = Math.max(12, sc.y - m.rY);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:sc.x,y:m.rY + topLen/2,w:topLen,h:8,color:"#6d4c41",rot:90,autoPdKind:"wallScreen"});
+      }else{
+        var botLen = Math.max(12, (m.rY+m.rH) - sc.y);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:sc.x,y:sc.y + botLen/2,w:botLen,h:8,color:"#6d4c41",rot:90,autoPdKind:"wallScreen"});
+      }
+    }
+  }
+  render();
+}
+
+function addPipeDrapeScreenToStage(){
+  if(!cfg.showStage || !cfg.showScreens || !screens.length){ alert("Show stage and screens first."); return; }
+  snapshot();
+  elems = elems.filter(function(el){ return el.autoPdKind!=="screenStage"; });
+
+  var sr = sRect();
+
+  for(var i=0;i<screens.length;i++){
+    var sc = screens[i];
+    var sw = cfg.screenW * PX;
+    var sh = 8;
+
+    var screenLeft = sc.x - sw/2;
+    var screenRight = sc.x + sw/2;
+    var screenTop = sc.y - sh/2;
+    var screenBottom = sc.y + sh/2;
+
+    var stageLeft = sr.x;
+    var stageRight = sr.x + sr.w;
+    var stageTop = sr.y;
+    var stageBottom = sr.y + sr.h;
+
+    // Determine relative position by geometry, not cfg.stageWall.
+    if(screenRight <= stageLeft){
+      // Screen is left of stage: horizontal run from screen right edge to stage left edge
+      var len1 = Math.max(12, stageLeft - screenRight);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:screenRight + len1/2, y:sc.y, w:len1, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+      });
+    }else if(screenLeft >= stageRight){
+      // Screen is right of stage
+      var len2 = Math.max(12, screenLeft - stageRight);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:stageRight + len2/2, y:sc.y, w:len2, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+      });
+    }else if(screenBottom <= stageTop){
+      // Screen is above stage: vertical run
+      var len3 = Math.max(12, stageTop - screenBottom);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:sc.x, y:screenBottom + len3/2, w:len3, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+      });
+    }else if(screenTop >= stageBottom){
+      // Screen is below stage: vertical run
+      var len4 = Math.max(12, screenTop - stageBottom);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:sc.x, y:stageBottom + len4/2, w:len4, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+      });
+    }else{
+      // Overlapping / ambiguous case: connect center-to-nearest stage edge by shortest axis.
+      var gapLeft = Math.abs(stageLeft - screenRight);
+      var gapRight = Math.abs(screenLeft - stageRight);
+      var gapTop = Math.abs(stageTop - screenBottom);
+      var gapBottom = Math.abs(screenTop - stageBottom);
+      var minGap = Math.min(gapLeft, gapRight, gapTop, gapBottom);
+
+      if(minGap === gapLeft){
+        var len5 = Math.max(12, stageLeft - screenRight);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:screenRight + len5/2, y:sc.y, w:len5, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+        });
+      }else if(minGap === gapRight){
+        var len6 = Math.max(12, screenLeft - stageRight);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:stageRight + len6/2, y:sc.y, w:len6, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+        });
+      }else if(minGap === gapTop){
+        var len7 = Math.max(12, stageTop - screenBottom);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:sc.x, y:screenBottom + len7/2, w:len7, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+        });
+      }else{
+        var len8 = Math.max(12, screenTop - stageBottom);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:sc.x, y:stageBottom + len8/2, w:len8, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+        });
+      }
+    }
+  }
+  render();
+}
+
 function getObj(id,tp){
   if(id==="backdrop")return backdrop;
   if(id==="pipeTruss")return pipeTruss;
@@ -401,9 +598,10 @@ function rotateSelection(deg){
 function rotateAll(deg){snapshot();for(var i=0;i<tables.length;i++)tables[i].facing=((tables[i].facing||0)+deg+360)%360;for(var rci=0;rci<clientTables.length;rci++)clientTables[rci].facing=((clientTables[rci].facing||0)+deg+360)%360;render()}
 
 function faceAllStage(){
-  snapshot();var f=facingForWall();
-  for(var i=0;i<tables.length;i++)tables[i].facing=f;
-  for(var fci=0;fci<clientTables.length;fci++)clientTables[fci].facing=f;
+  snapshot();
+  var f=facingForWall();
+  for(var i=0;i<tables.length;i++){ tables[i].facing=f; }
+  for(var fci=0;fci<clientTables.length;fci++){ clientTables[fci].facing=f; }
   render();
 }
 
@@ -635,9 +833,184 @@ function snapSelStageFront(){
 }
 
 
+
+function getCadStorageKey(name){ return "eventCadProject::"+name; }
+
+function showSyncStatus(msg){
+  var el=document.getElementById("stats");
+  if(!el)return;
+  var cur=el.innerHTML;
+  el.innerHTML = '<span style="color:#00695c;font-weight:700">'+msg+'</span> &middot; ' + cur;
+}
+
+function serializeCadState(){
+  return {
+    currentCadName: currentCadName,
+    cfg: JSON.parse(JSON.stringify(cfg)),
+    tables: JSON.parse(JSON.stringify(tables)),
+    clientTables: JSON.parse(JSON.stringify(clientTables)),
+    screens: JSON.parse(JSON.stringify(screens)),
+    elems: JSON.parse(JSON.stringify(elems)),
+    pdfBg: pdfBg,
+    pdfPageW: pdfPageW,
+    pdfPageH: pdfPageH,
+    pdfWallBox: pdfWallBox ? JSON.parse(JSON.stringify(pdfWallBox)) : null,
+    measuredLines: JSON.parse(JSON.stringify(measuredLines)),
+    customLayout: JSON.parse(JSON.stringify(customLayout)),
+    customLayoutText: customLayoutText,
+    backdrop: JSON.parse(JSON.stringify(backdrop)),
+    pipeTruss: JSON.parse(JSON.stringify(pipeTruss))
+  };
+}
+
+function applyCadState(state){
+  if(!state) return;
+  if(state.cfg) cfg = JSON.parse(JSON.stringify(state.cfg));
+  tables = state.tables ? JSON.parse(JSON.stringify(state.tables)) : [];
+  clientTables = state.clientTables ? JSON.parse(JSON.stringify(state.clientTables)) : [];
+  screens = state.screens ? JSON.parse(JSON.stringify(state.screens)) : [];
+  elems = state.elems ? JSON.parse(JSON.stringify(state.elems)) : [];
+  pdfBg = state.pdfBg || null;
+  pdfPageW = state.pdfPageW || 0;
+  pdfPageH = state.pdfPageH || 0;
+  pdfWallBox = state.pdfWallBox ? JSON.parse(JSON.stringify(state.pdfWallBox)) : null;
+  measuredLines = state.measuredLines ? JSON.parse(JSON.stringify(state.measuredLines)) : [];
+  customLayout = state.customLayout ? JSON.parse(JSON.stringify(state.customLayout)) : [];
+  customLayoutText = state.customLayoutText || "";
+  if(state.backdrop){ backdrop = JSON.parse(JSON.stringify(state.backdrop)); }
+  if(state.pipeTruss){ pipeTruss = JSON.parse(JSON.stringify(state.pipeTruss)); }
+  currentCadName = state.currentCadName || "Untitled CAD";
+  clearSel();
+  mode="select";
+  measurePt1=null;
+  measurePt2=null;
+  render();
+}
+
+
+async function saveCadProject(){
+  var name = prompt("Save CAD as:", currentCadName || "Untitled CAD");
+  if(!name) return;
+  currentCadName = name.trim();
+  var payload = serializeCadState();
+  payload.currentCadName = currentCadName;
+  showSyncStatus("Saving...");
+  try{
+    var res = await fetch(SYNC_API_BASE + "/" + encodeURIComponent(currentCadName), {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("Save failed (" + res.status + ")");
+    render();
+    alert('Saved "'+currentCadName+'" to cloud sync');
+  }catch(err){
+    alert("Cloud save failed: " + err.message);
+  }
+}
+
+
+function closeLoadModal(){
+  var modal=document.getElementById("loadModal");
+  if(modal) modal.classList.remove("show");
+}
+
+async function deleteCadProject(name){
+  if(!confirm('Delete "'+name+'"?')) return;
+  try{
+    var res = await fetch(SYNC_API_BASE + "/" + encodeURIComponent(name), { method:"DELETE" });
+    if(!res.ok) throw new Error("Delete failed (" + res.status + ")");
+    await openLoadCadModal();
+  }catch(err){
+    alert("Cloud delete failed: " + err.message);
+  }
+}
+
+function renderLoadList(projects){
+  var list=document.getElementById("loadList");
+  if(!list) return;
+  if(!projects || !projects.length){
+    list.innerHTML = '<div class="load-empty">No synced CAD projects found.</div>';
+    return;
+  }
+  list.innerHTML = projects.map(function(p){
+    var nm = String(p.name || "");
+    var dt = p.updated_at ? String(p.updated_at) : "";
+    return '<div class="load-item">' +
+      '<div>' +
+        '<div class="load-name">'+nm.replace(/</g,"&lt;")+'</div>' +
+        '<div class="load-date">'+dt.replace(/</g,"&lt;")+'</div>' +
+      '</div>' +
+      '<div class="load-actions">' +
+        '<button class="load-btn primary" onclick="loadCadProjectByName(\''+nm.replace(/'/g,"\'")+'\')">Load</button>' +
+        '<button class="load-btn" onclick="deleteCadProject(\''+nm.replace(/'/g,"\'")+'\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+async function openLoadCadModal(){
+  showSyncStatus("Loading list...");
+  try{
+    var listRes = await fetch(SYNC_API_BASE);
+    if(!listRes.ok) throw new Error("List failed (" + listRes.status + ")");
+    var listData = await listRes.json();
+    var projects = (listData.projects || []).slice().sort(function(a,b){
+      return String(b.updated_at||"").localeCompare(String(a.updated_at||""));
+    });
+    renderLoadList(projects);
+    var modal=document.getElementById("loadModal");
+    if(modal) modal.classList.add("show");
+  }catch(err){
+    alert("Cloud load failed: " + err.message);
+  }
+}
+
+async function loadCadProjectByName(name){
+  if(!name) return;
+  try{
+    var res = await fetch(SYNC_API_BASE + "/" + encodeURIComponent(name));
+    if(!res.ok) throw new Error("Load failed (" + res.status + ")");
+    var data = await res.json();
+    applyCadState(data.project);
+    closeLoadModal();
+  }catch(err){
+    alert("Cloud load failed: " + err.message);
+  }
+}
+
+async function loadCadProject(){
+  await openLoadCadModal();
+}
+
+function createNewCad(){
+  var name = prompt("New CAD name:", "New CAD");
+  if(!name) return;
+  snapshot();
+  currentCadName = name.trim();
+  tables=[]; clientTables=[]; elems=[]; measuredLines=[]; customLayout=[]; customLayoutText="";
+  pdfBg=null; pdfPageW=0; pdfPageH=0; pdfWallBox=null;
+  initScreens();
+  resetStageItems();
+  clearSel();
+  mode="select";
+  measurePt1=null;
+  measurePt2=null;
+  render();
+}
+
 // ══════ PDF & EVENTS ══════
 document.getElementById("pdfIn").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;pdfjsLib.getDocument(URL.createObjectURL(f)).promise.then(function(pdf){pdf.getPage(1).then(function(pg){var vp=pg.getViewport({scale:1.5});var c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise.then(function(){pdfBg=c.toDataURL();pdfPageW=vp.width;pdfPageH=vp.height;pdfWallBox=null;render()})})}).catch(function(err){alert("PDF error: "+err.message)})});
 document.getElementById("btnUpload").onclick=function(){document.getElementById("pdfIn").click()};
+document.getElementById("btnNewCad").onclick=createNewCad;
+document.getElementById("btnSaveCad").onclick=saveCadProject;
+document.getElementById("btnLoadCad").onclick=loadCadProject;
+document.getElementById("loadModalClose").onclick=closeLoadModal;
+document.getElementById("loadModal").addEventListener("click",function(e){ if(e.target && e.target.id==="loadModal") closeLoadModal(); });
+var _fit=document.getElementById("btnFit"); if(_fit) _fit.onclick=fitCadToView;
+var _zin=document.getElementById("btnZoomIn"); if(_zin) _zin.onclick=zoomInCad;
+var _zout=document.getElementById("btnZoomOut"); if(_zout) _zout.onclick=zoomOutCad;
+window.addEventListener("resize", function(){ fitCadToView(); });
 document.getElementById("btnDetectWalls").onclick=function(){if(!pdfBg){alert("Upload a PDF first.");return;}detectHotelWallsFromPdf(function(ok){if(!ok)alert("Could not detect walls on this PDF.");render();});};
 document.getElementById("btnClearElems").onclick=function(){snapshot();clearElements()};
 document.getElementById("btnClearPdf").onclick=function(){snapshot();clearPdf()};
@@ -893,6 +1266,42 @@ function elemSVG(el){var sel=isSel(el.id);var stk=sel?"#0066cc":el.color,sw=sel?
     s+='<text x="0" y="1" text-anchor="middle" dominant-baseline="middle" fill="'+el.color+'" font-size="'+(el.w>60?6:5)+'" font-weight="700" font-family="'+FF+'" style="pointer-events:none">'+el.label+"</text></g>"}
   s+="</g>";return s}
 
+
+function applyViewZoom(){
+  var svg = document.getElementById("cad");
+  if(!svg) return;
+  svg.style.transformOrigin = "top left";
+  svg.style.transform = "scale(" + viewZoom + ")";
+  var w = Number(svg.getAttribute("width")||0);
+  var h = Number(svg.getAttribute("height")||0);
+  svg.style.marginRight = ((w*viewZoom)-w) + "px";
+  svg.style.marginBottom = ((h*viewZoom)-h) + "px";
+}
+
+function fitCadToView(){
+  var wrap = document.getElementById("cvw");
+  var svg = document.getElementById("cad");
+  if(!wrap || !svg) return;
+  var w = Number(svg.getAttribute("width")||0);
+  var h = Number(svg.getAttribute("height")||0);
+  if(!w || !h) return;
+  var availW = Math.max(100, wrap.clientWidth - 40);
+  var availH = Math.max(100, wrap.clientHeight - 40);
+  viewZoom = Math.min(availW / w, availH / h, 1);
+  if(!isFinite(viewZoom) || viewZoom <= 0) viewZoom = 1;
+  applyViewZoom();
+}
+
+function zoomInCad(){
+  viewZoom = Math.min(3, (viewZoom||1) + 0.1);
+  applyViewZoom();
+}
+
+function zoomOutCad(){
+  viewZoom = Math.max(0.2, (viewZoom||1) - 0.1);
+  applyViewZoom();
+}
+
 // ══════ RENDER ══════
 function render(){
   var m=met(),svg=$("#cad"),w=cfg.stageWall,sr=sRect(),F=FF;
@@ -900,7 +1309,7 @@ function render(){
   svg.style.cursor=(mode!=="select")?"crosshair":"default";
   var tS=tables.length*cfg.chairsPerTable+clientTables.length*cfg.chairsPerTable,tT=tables.length+clientTables.length;
   var cSpace2=chairSpacing();var csLbl=cSpace2>0?cSpace2.toFixed(1)+'" gap':"";
-  $("#stats").innerHTML='<span style="font-size:15px;font-weight:900;color:#cc0000">'+tS+' PEOPLE</span> &middot; <b style="color:#333">'+tables.length+'</b> tables &middot; <b style="color:#333">'+cfg.chairsPerTable+'</b>/tbl &middot; <span style="color:#0077b6;font-weight:700">'+csLbl+'</span> &middot; <b style="color:#333">'+elems.length+'</b> elem';
+  $("#stats").innerHTML='<span style="font-size:13px;font-weight:900;color:#424242">'+currentCadName+'</span> &middot; <span style="font-size:15px;font-weight:900;color:#cc0000">'+tS+' PEOPLE</span> &middot; <b style="color:#333">'+tables.length+'</b> tables &middot; <b style="color:#333">'+cfg.chairsPerTable+'</b>/tbl &middot; <span style="color:#0077b6;font-weight:700">'+csLbl+'</span> &middot; <b style="color:#333">'+elems.length+'</b> elem &middot; <b style="color:#546e7a">'+Math.round(viewZoom*100)+'%</b>';
   if(mode!=="select"&&mode!=="measure2"){$("#mb").style.display="";
     var bannerCol=mode==="placeTable"?"#cc0000":mode==="placeElem"?"#2e7d32":"#0066cc";
     var bannerTxt=mode==="placeTable"?"PLACE TABLE":mode==="placeClient"?"SET CLIENT TABLE":mode==="placeElem"?"CLICK TO PLACE ELEMENT":mode==="measure1"?"CLICK FIRST MEASUREMENT POINT":"";
@@ -1206,7 +1615,7 @@ function render(){
   var bX=m.rX,bY=m.rY+m.rH+PAD-12,bW=m.rW;
   h+='<rect x="'+bX+'" y="'+bY+'" width="'+bW+'" height="'+TH+'" fill="#fffde7" stroke="#222" stroke-width="2"/>';
   [.36,.64,.82].forEach(function(f2){h+='<line x1="'+(bX+bW*f2)+'" y1="'+bY+'" x2="'+(bX+bW*f2)+'" y2="'+(bY+TH)+'" stroke="#222" stroke-width="0.8"/>'});
-  var c1=[["EVENT NAME:",cfg.eventName,13,800],["SESSION:",cfg.sessionName,24,800],["START DATE:",cfg.startDate,35,400],["END DATE:",cfg.endDate,46,400]];
+  var c1=[["CAD NAME:",currentCadName,13,800],["SESSION:",cfg.sessionName,24,800],["START DATE:",cfg.startDate,35,400],["END DATE:",cfg.endDate,46,400]];
   for(var i3=0;i3<c1.length;i3++){h+='<text x="'+(bX+6)+'" y="'+(bY+c1[i3][2])+'" fill="#777" font-size="6" font-family="'+F+'">'+c1[i3][0]+'</text><text x="'+(bX+62)+'" y="'+(bY+c1[i3][2])+'" fill="#111" font-size="7" font-weight="'+c1[i3][3]+'" font-family="'+F+'">'+c1[i3][1]+"</text>"}
   h+='<text x="'+(bX+6)+'" y="'+(bY+60)+'" fill="#777" font-size="6" font-family="'+F+'">SEATING:</text>';
   var sl=cfg.tableShape==="crescent"?"Crescents":cfg.tableShape==="round"?"Rounds":"Tables";var cTxt=clientTables.length?(" + "+clientTables.length+" Client "+cfg.clientW+"'x"+(cfg.clientD/12).toFixed(0)+"'"):"";
@@ -1222,7 +1631,7 @@ function render(){
   h+='<text x="'+(bX+bW*.91)+'" y="'+(bY+62)+'" text-anchor="middle" fill="#cc0000" font-size="14" font-weight="900" font-family="'+F+'">'+cfg.versionNum+"</text>";
   svg.innerHTML=h;
   var mh="";if(ms.length){mh='<div class="shd" style="margin-top:10px">MEASUREMENTS</div>';for(var mi3=0;mi3<ms.length;mi3++)mh+='<div class="mr"><span>Distance</span><span class="mv">'+ms[mi3].label+"</span></div>"}
-  $("#mrd").innerHTML=mh;renderPanel()
+  $("#mrd").innerHTML=mh;renderPanel();applyViewZoom()
 }
 
 // ══════ PANEL ══════
@@ -1270,7 +1679,10 @@ function renderPanel(){
     p+='<div style="display:flex;gap:4px;margin-top:6px">'+btn("BACKDROP",cfg.showBackdrop,"cfg.showBackdrop=!cfg.showBackdrop;render()")+btn("PIPES",cfg.showPipes,"cfg.showPipes=!cfg.showPipes;render()")+"</div>";
     p+='<div class="shd">CONFIDENCE MONITORS</div>';
     p+='<div class="hint">Quick place two confidence monitors centered in front of the stage.</div>';
-    p+='<div style="display:flex;gap:4px;margin-bottom:8px">'+btn("2 CONF MON",false,"addConfidencePair(\'CONF_MON\')","#00838f")+btn("2 CONF MON SM",false,"addConfidencePair(\'CONF_MON_SM\')","#00838f")+'</div>'
+    p+='<div style="display:flex;gap:4px;margin-bottom:8px">'+btn("2 CONF MON",false,"addConfidencePair(\'CONF_MON\')","#00838f")+btn("2 CONF MON SM",false,"addConfidencePair(\'CONF_MON_SM\')","#00838f")+'</div>';
+    p+='<div class="shd">PIPE & DRAPE</div>';
+    p+='<div class="hint">Auto place pipe & drape from wall to screen, or from screen to stage.</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:8px">'+btn("P&D WALL→SCREEN",false,"addPipeDrapeWallToScreen()","#8d6e63")+btn("P&D SCREEN→STAGE",false,"addPipeDrapeScreenToStage()","#8d6e63")+'</div>'
   }
 
   if(tab==="tables"){
@@ -1402,7 +1814,10 @@ function renderPanel(){
     p+='<div class="hint">Click two points on the drawing to measure distance in feet.</div>';
     p+='<div style="display:flex;gap:4px;margin-bottom:6px">';
     p+=btn("\u2714 START MEASURE",mode==="measure1"||mode==="measure2","mode=\'measure1\';measurePt1=null;measurePt2=null;render()","#e65100");
-    p+=btn("CLEAR MEASURE",false,"measurePt1=null;measurePt2=null;mode=\'select\';render()");
+    p+=btn("DELETE RECENT",false,"if(measuredLines.length){measuredLines.pop();}else{measurePt1=null;measurePt2=null;}mode=\'select\';render()");
+    p+='</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:6px">';
+    p+=btn("CLEAR ALL",false,"measuredLines=[];measurePt1=null;measurePt2=null;mode=\'select\';render()");
     p+='</div>';
     if(measurePt1&&measurePt2){var md2=Math.sqrt((measurePt2.x-measurePt1.x)*(measurePt2.x-measurePt1.x)+(measurePt2.y-measurePt1.y)*(measurePt2.y-measurePt1.y));
       p+='<div style="background:#fff3e0;padding:8px 10px;border-radius:4px;border:1px solid #e65100;margin-bottom:8px;font-size:14px;font-weight:900;color:#e65100;text-align:center">'+(md2/PX).toFixed(1)+"' ("+(md2/PX*12).toFixed(0)+'\")</div>';}
@@ -1420,6 +1835,7 @@ function renderPanel(){
 }
 
 render();
+setTimeout(function(){ fitCadToView(); }, 50);
 </script>
-
-</body></html>
+</body>
+</html>
