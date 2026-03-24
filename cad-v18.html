@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event CAD Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#d8d8d8;height:100vh;overflow:hidden;display:flex;flex-direction:column;user-select:none;font-size:13px}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#eee}
+::-webkit-scrollbar-thumb{background:#aaa;border-radius:4px}
+.toolbar{display:flex;align-items:center;padding:8px 16px;background:#fff;border-bottom:3px solid #222;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.logo-box{width:34px;height:34px;background:#cc0000;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:900}
+.tb{padding:8px 16px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,Helvetica,sans-serif;letter-spacing:.8px;border:1px solid #bbb;background:#eee;color:#333}
+.main-wrap{display:flex;flex:1;overflow:hidden}
+.panel{width:316px;flex-shrink:0;background:#fafafa;border-right:2px solid #222;overflow-y:auto;padding:10px 12px}
+.ptabs{display:flex;gap:0;margin-bottom:8px}
+.ptabs button{flex:1;padding:9px 0;font-size:11px;font-weight:800;letter-spacing:1.2px;border:1px solid #ccc;cursor:pointer;font-family:Arial,Helvetica,sans-serif;background:#f0f0f0;color:#777}
+.ptabs button.on{background:#222;color:#fff;border-bottom:3px solid #cc0000}
+.shd{font-size:12px;font-weight:800;color:#cc0000;letter-spacing:1.5px;margin-top:14px;margin-bottom:7px;border-bottom:2px solid #ddd;padding-bottom:4px;font-family:Arial,Helvetica,sans-serif}
+.fr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px}
+.fr label{font-size:13px;color:#444;white-space:nowrap;flex-shrink:0;font-family:Arial,Helvetica,sans-serif}
+.fr input{font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial,Helvetica,sans-serif;background:#fff}
+.btn{padding:8px 10px;font-size:12px;font-weight:700;font-family:Arial,Helvetica,sans-serif;letter-spacing:.4px;border-radius:4px;cursor:pointer;flex:1;white-space:nowrap;border:1px solid #bbb;background:#f0f0f0;color:#333;text-align:center}
+.btn.on{background:#333;color:#fff;border-color:#333}
+.btn:hover{opacity:0.85}
+.cvw{flex:1;overflow:auto;background:#c0c0c0;padding:16px;position:relative}
+.mbanner{position:sticky;top:0;z-index:10;text-align:center;margin-bottom:8px}
+.mbanner span{display:inline-block;color:#fff;padding:8px 28px;border-radius:20px;font-size:14px;font-weight:800;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,.3);font-family:Arial,Helvetica,sans-serif}
+.mr{display:flex;justify-content:space-between;font-size:13px;color:#555;padding:4px 0;border-bottom:1px solid #eee}
+.mv{color:#cc0000;font-weight:800}
+.srow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.srow label{font-size:13px;color:#444;white-space:nowrap;min-width:80px}
+.srow input[type=range]{flex:1;accent-color:#cc0000;height:6px}
+.srow .sv{font-size:13px;color:#cc0000;font-weight:700;min-width:42px;text-align:right}
+.elem-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.elem-grid button{padding:6px 9px;font-size:11px;font-weight:600;font-family:Arial,Helvetica,sans-serif;border:1px solid #bbb;border-radius:4px;cursor:pointer;background:#f8f8f8;color:#444}
+.elem-grid button:hover{background:#e0e0e0}
+.hint{font-size:12px;color:#777;font-style:italic;margin:4px 0 8px}
+.load-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999}
+.load-modal.show{display:flex}
+.load-card{width:min(520px,92vw);max-height:80vh;overflow:auto;background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:14px}
+.load-title{font-size:16px;font-weight:800;color:#222;margin-bottom:10px;font-family:Arial,Helvetica,sans-serif}
+.load-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.load-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fafafa;font-family:Arial,Helvetica,sans-serif}
+.load-name{font-size:14px;font-weight:700;color:#222}
+.load-date{font-size:12px;color:#666}
+.load-actions{display:flex;gap:8px;flex-wrap:wrap}
+.load-btn{padding:8px 12px;border-radius:6px;border:1px solid #bbb;background:#f0f0f0;color:#333;font-weight:700;cursor:pointer;font-family:Arial,Helvetica,sans-serif}
+.load-btn.primary{background:#455a64;color:#fff;border-color:#455a64}
+.load-empty{font-size:13px;color:#666;padding:8px 0}
+
+</style>
+</head>
+<body>
+<input type="file" id="pdfIn" accept=".pdf" style="display:none">
+<div class="toolbar">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="logo-box">&#9670;</div>
+    <div><div style="font-size:16px;font-weight:900;color:#111;letter-spacing:1.5px">CAD GENERATOR</div><div style="font-size:9px;color:#999;letter-spacing:3px">EVENT PRODUCTION LAYOUT</div></div>
+  </div>
+  <div style="flex:1"></div>
+  <button class="tb" style="background:#cc0000;color:#fff;border-color:#cc0000" id="btnUpload">&#9650; UPLOAD PDF</button>
+  <button class="tb" id="btnNewCad" style="background:#424242;color:#fff;border-color:#424242">NEW CAD</button>
+  <button class="tb" id="btnSaveCad" style="background:#00796b;color:#fff;border-color:#00796b">SAVE CAD SYNC</button>
+  <button class="tb" id="btnLoadCad" style="background:#455a64;color:#fff;border-color:#455a64">LOAD CAD SYNC</button>
+  <button class="tb" id="btnDetectWalls" style="background:#6a1b9a;color:#fff;border-color:#6a1b9a">DETECT WALLS</button>
+  <button class="tb" id="btnUndo" style="background:#1565c0;color:#fff;border-color:#1565c0">&#8630; UNDO</button>
+  <button class="tb" id="btnExport" style="background:#2e7d32;color:#fff;border-color:#2e7d32">&#9660; EXPORT PDF</button>
+  <button class="tb" id="btnClearElems" style="background:#ff6600;color:#fff;border-color:#ff6600">CLEAR ELEMENTS</button>
+  <button class="tb" id="btnClearPdf" style="background:#8e24aa;color:#fff;border-color:#8e24aa">DELETE PDF</button>
+  <button class="tb" id="togP">&#9664; HIDE</button>
+  <div id="stats" style="font-size:13px;color:#555;padding:0 10px;border-left:1px solid #ddd"></div>
+</div>
+<div class="main-wrap">
+  <div class="panel" id="panel"><div class="ptabs" id="ptabs"></div><div id="pc"></div><div id="mrd"></div></div>
+  <div class="cvw" id="cvw">
+    <div class="mbanner" id="mb" style="display:none"><span id="mbt"></span></div>
+    <svg id="cad" xmlns="http://www.w3.org/2000/svg" style="background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.25);display:block"></svg>
+  </div>
+</div>
+<div class="load-modal" id="loadModal">
+  <div class="load-card">
+    <div class="load-title">Load CAD Sync</div>
+    <div id="loadList" class="load-list"></div>
+    <div class="load-actions">
+      <button class="load-btn" id="loadModalClose">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+var PX=12,PAD=60,TH=68,FF="Arial,Helvetica,sans-serif";
+function $(s){return document.querySelector(s)}
+function uid(){return Math.random().toString(36).slice(2,8)}
+function dst(a,b){return Math.sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y))}
+
+var ELEM_CATALOG=[
+  {cat:"Tech Positions",items:[
+    {type:"SM",label:"STAGE MANAGER",w:60,h:20,color:"#333"},{type:"TD",label:"TD / SWITCHER",w:60,h:20,color:"#333"},
+    {type:"EIC",label:"EIC / RECORDS",w:60,h:20,color:"#333"},{type:"GFX",label:"GRAPHICS",w:48,h:20,color:"#333"},
+    {type:"A1",label:"A1",w:30,h:20,color:"#333"},{type:"A2",label:"A2",w:30,h:20,color:"#333"},
+    {type:"LD",label:"LIGHTING",w:48,h:20,color:"#333"},{type:"DDR",label:"DDR PLAYBACK",w:60,h:20,color:"#333"},
+    {type:"MICS",label:"MICS",w:36,h:20,color:"#333"}]},
+  {cat:"Audio / Video",items:[
+    {type:"AUDIO_PROC",label:"AUDIO PROCESSORS",w:76,h:22,color:"#1565c0"},
+    {type:"AUDIO_GS",label:"AUDIO GROUND SUPPORT",w:84,h:22,color:"#1565c0"},
+    {type:"AUDIO_PROD",label:"AUDIO PRODUCTION",w:76,h:22,color:"#1565c0"},
+    {type:"LED_PROC",label:"LED PROCESSORS",w:68,h:22,color:"#4a148c"},
+    {type:"LED_WALL",label:"LED WALL",w:84,h:14,color:"#4a148c"},
+    {type:"CONF_MON",label:"CONFIDENCE MONITOR",w:60,h:10,color:"#00838f"},
+    {type:"CONF_MON_SM",label:"CONF. MON (SM)",w:48,h:10,color:"#00838f"},
+    {type:"FOLDBACK",label:"FOLDBACK MONITOR",w:56,h:10,color:"#00838f"},
+    {type:"TELEPROMPTER",label:"TELEPROMPTER",w:48,h:10,color:"#00838f"},
+    {type:"MON_T55",label:"55in MON TRUSS",w:55,h:14,color:"#00838f",isMounted:true,mountType:"truss",monSize:55},
+    {type:"MON_T65",label:"65in MON TRUSS",w:65,h:16,color:"#00838f",isMounted:true,mountType:"truss",monSize:65},
+    {type:"MON_T75",label:"75in MON TRUSS",w:75,h:18,color:"#00838f",isMounted:true,mountType:"truss",monSize:75},
+    {type:"MON_P55",label:"55in MON P+D",w:55,h:14,color:"#00838f",isMounted:true,mountType:"pd",monSize:55},
+    {type:"MON_P65",label:"65in MON P+D",w:65,h:16,color:"#00838f",isMounted:true,mountType:"pd",monSize:65},
+    {type:"MON_P75",label:"75in MON P+D",w:75,h:18,color:"#00838f",isMounted:true,mountType:"pd",monSize:75}]},
+  {cat:"Storage",items:[
+    {type:"CASE_STORE",label:"CASE STORAGE",w:68,h:26,color:"#5d4037"},
+    {type:"STAGE_FURN",label:"STAGE FURN. STORAGE",w:84,h:30,color:"#5d4037"},
+    {type:"GAME_STORE",label:"GAME SHOW STORAGE",w:76,h:30,color:"#5d4037"},
+    {type:"EXHIBIT_STORE",label:"EXHIBITS STORAGE",w:76,h:30,color:"#5d4037"},
+    {type:"PROD_STORE",label:"PRODUCTION STORAGE",w:76,h:30,color:"#5d4037"}]},
+  {cat:"Zones / Drape",items:[
+    {type:"KEEP_CLEAR",label:"KEEP CLEAR",w:68,h:18,color:"#cc0000"},
+    {type:"NO_ENTRY",label:"NO ENTRY",w:52,h:18,color:"#cc0000"},
+    {type:"HIGH_TOP",label:"HIGH CLIENT TABLE",w:40,h:40,color:"#00695c",isCircle:true},
+    {type:"PREFUNCTION",label:"PREFUNCTION AREA",w:110,h:22,color:"#37474f"},
+    {type:"LOADING",label:"LOADING DOCK",w:84,h:26,color:"#37474f"},
+    {type:"SERVICE",label:"SERVICE CORRIDOR",w:110,h:18,color:"#37474f"},
+    {type:"DRAPE_8",label:"DRAPE 8'",w:96,h:8,color:"#8d6e63"},
+    {type:"DRAPE_3",label:"DRAPE 3'",w:36,h:8,color:"#8d6e63"},
+    {type:"PIPE_DRAPE",label:"PIPE & DRAPE",w:120,h:10,color:"#8d6e63"}]},
+  {cat:"Doors",items:[
+    {type:"DOOR_S36",label:"SINGLE DOOR 36\"",w:36,h:36,color:"#2e7d32",isDoor:true,doorW:36},
+    {type:"DOOR_S30",label:"SINGLE DOOR 30\"",w:30,h:30,color:"#2e7d32",isDoor:true,doorW:30},
+    {type:"DOOR_D72",label:"DOUBLE DOOR 72\"",w:72,h:36,color:"#2e7d32",isDoor:true,doorW:72,isDouble:true},
+    {type:"DOOR_D60",label:"DOUBLE DOOR 60\"",w:60,h:30,color:"#2e7d32",isDoor:true,doorW:60,isDouble:true},
+    {type:"DOOR_EM",label:"EMERGENCY EXIT 36\"",w:36,h:36,color:"#c62828",isDoor:true,doorW:36},
+    {type:"DOOR_ROLL",label:"ROLL-UP DOOR 10'",w:120,h:10,color:"#2e7d32",isDoor:true,doorW:120,isRoll:true}
+  ]}
+];
+
+var cfg={
+  eventName:"EVENT NAME",sessionName:"GENERAL SESSION",venueName:"VENUE NAME",
+  location:"CITY, STATE",roomName:"BALLROOM",roomW:133,roomH:89,
+  startDate:"2026-03-22",endDate:"2026-03-24",drawnBy:"CAD OPERATOR",
+  sheetNum:"01",versionNum:"001",notes:"",
+  stageWall:"top",stageW:36,stageD:16,stageH:24,stageOffset:0,showStage:false,
+  screenW:14,screenH:7.83,screenCount:2,showScreens:false,
+  backdropW:16,backdropH:8,backdropType:"led",showBackdrop:false,
+  tableShape:"crescent",tableDiam:72,chairsPerTable:8,attendeeCount:120,chairSizeIn:18,chairGapIn:4,
+  tableFacing:0,tableSpacing:10,tableRows:0,tableCols:0,rectTableW:6,rectTableD:18,
+  clientW:6,clientD:30,roboCam:true,roboCamH:8,
+  showTech:true,showRigging:false,showDims:true,showWallDist:false,showWallDistAll:false,showEntrance:true,
+  entranceSide:"bottom",showPipes:false
+};
+
+var tables=[],clientTables=[],screens=[],elems=[];
+var selection=[]; // [{id:'abc',tp:'table'},{id:'scr_x',tp:'screen'}...]
+var dragId=null,dragOff={x:0,y:0},dragType="table",dragMulti=false;
+var multiOffsets=[]; // [{id,tp,dx,dy}] for dragging multiple
+var mode="select",pdfBg=null,pdfPageW=0,pdfPageH=0,pdfWallBox=null,tab="event",showPanel=true,currentCadName="Untitled CAD",SYNC_API_BASE="/api/projects",viewZoom=1;
+
+// Custom layout: array of numbers, each = tables in that row
+var customLayout=[];
+var placingElemType=null;
+var measurePt1=null,measurePt2=null;
+var measuredLines=[];
+var drawingDrape=null; // {id, startX, startY} when click-dragging a drape
+var customLayoutText="";
+
+// ══════ UNDO SYSTEM ══════
+var undoStack=[];
+var MAX_UNDO=50;
+
+function snapshot(){
+  var state={
+    tables:JSON.parse(JSON.stringify(tables)),
+    clientTables:JSON.parse(JSON.stringify(clientTables)),
+    screens:JSON.parse(JSON.stringify(screens)),
+    elems:JSON.parse(JSON.stringify(elems)),
+    backdropX:backdrop.x,backdropY:backdrop.y,
+    pipeX:pipeTruss.x,pipeY:pipeTruss.y
+  };
+  undoStack.push(state);
+  if(undoStack.length>MAX_UNDO)undoStack.shift();
+}
+
+function undo(){
+  if(undoStack.length===0)return;
+  var state=undoStack.pop();
+  tables=state.tables;
+  clientTables=state.clientTables;
+  screens=state.screens;
+  elems=state.elems;
+  backdrop.x=state.backdropX;backdrop.y=state.backdropY;
+  pipeTruss.x=state.pipeX;pipeTruss.y=state.pipeY;
+  clearSel();
+  render();
+}
+
+// Keyboard shortcut: Cmd+Z (Mac) / Ctrl+Z (Win)
+document.addEventListener("keydown",function(e){
+  if((e.metaKey||e.ctrlKey)&&e.key==="z"){
+    e.preventDefault();
+    undo();
+  }
+  if(e.key==="Escape"){
+    mode="select";placingElemType=null;measurePt1=null;measurePt2=null;render();
+  }
+});
+
+function isSel(id){return selection.some(function(s){return s.id===id})}
+function selFirst(){return selection.length?selection[0]:null}
+function clearSel(){selection=[]}
+
+function defFace(){return{top:0,bottom:180,left:270,right:90}[cfg.stageWall]||0}
+function met(){
+  var cW=cfg.roomW*PX+PAD*2,cH=cfg.roomH*PX+PAD*2+TH;
+  var rX=PAD,rY=PAD,rW=cfg.roomW*PX,rH=cfg.roomH*PX;
+  var sW=cfg.stageW*PX,sD=cfg.stageD*PX,sX,sY,w=cfg.stageWall;
+  if(w==="top"){sX=rX+rW/2-sW/2;sY=rY+8+cfg.stageOffset*PX}else if(w==="bottom"){sX=rX+rW/2-sW/2;sY=rY+rH-sD-8-cfg.stageOffset*PX}
+  else if(w==="left"){sX=rX+8+cfg.stageOffset*PX;sY=rY+rH/2-sW/2}else{sX=rX+rW-sD-8-cfg.stageOffset*PX;sY=rY+rH/2-sW/2}
+  return{cW:cW,cH:cH,rX:rX,rY:rY,rW:rW,rH:rH,sW:sW,sD:sD,sX:sX,sY:sY}
+}
+function sRect(){var m=met(),w=cfg.stageWall;if(w==="top"||w==="bottom")return{x:m.sX,y:m.sY,w:m.sW,h:m.sD};return{x:m.sX,y:m.sY,w:m.sD,h:m.sW}}
+function sFront(){var s=sRect(),w=cfg.stageWall;if(w==="top")return{x:s.x+s.w/2,y:s.y+s.h};if(w==="bottom")return{x:s.x+s.w/2,y:s.y};if(w==="left")return{x:s.x+s.w,y:s.y+s.h/2};return{x:s.x,y:s.y+s.h/2}}
+
+// Face toward: calculate angle so the "open" side of crescent faces target
+function chairSpacing(){
+  // Calculate distance between chair centers in inches
+  var rIn=cfg.tableDiam/2; // table radius in inches
+  var cR=cfg.chairSizeIn/2; // chair radius in inches
+  var ringR=rIn+cR+cfg.chairGapIn; // ring radius where chair centers sit (inches, +2in gap)
+  var n=cfg.chairsPerTable;
+  if(n<2)return 0;
+  if(cfg.tableShape==="crescent"){
+    // Chairs on ~82% of circle
+    var arcSpan=Math.PI*0.82;
+    var arcPerChair=arcSpan/n;
+    return 2*ringR*Math.sin(arcPerChair/2);
+  }else if(cfg.tableShape==="round"){
+    // Full circle
+    var arcPerChair2=2*Math.PI/n;
+    return 2*ringR*Math.sin(arcPerChair2/2);
+  }else{
+    // Rectangular: approximate along long side
+    var longSide=Math.max(cfg.rectTableW*12,cfg.rectTableD);
+    var perSide=Math.floor(n/2);
+    if(perSide<2)return longSide;
+    return longSide/(perSide-1);
+  }
+}
+
+function facingForWall(){
+  // rotate(0) means chairs on +Y side (downscreen)
+  // To face the stage wall:
+  // stage top -> chairs should face up => 180
+  // stage bottom -> chairs should face down => 0
+  // stage left -> chairs should face left => 90
+  // stage right -> chairs should face right => 270
+  var map={top:180,bottom:0,left:90,right:270};
+  return map[cfg.stageWall]||0;
+}
+function faceToward(obj,target){
+  // Per-object angle toward a specific point (used for individual rotate-toward)
+  var dx=target.x-obj.x, dy=target.y-obj.y;
+  if(Math.abs(dx)<0.01&&Math.abs(dy)<0.01)return facingForWall();
+  var r = Math.atan2(-dx, dy) * 180 / Math.PI;
+  return ((Math.round(r/15)*15) % 360 + 360) % 360;
+}
+
+function initScreens(){var m=met(),w=cfg.stageWall,sr=sRect();screens=[];
+  for(var i=0;i<cfg.screenCount;i++){
+    if(w==="top"||w==="bottom"){var sp=sr.w/(cfg.screenCount+1);screens.push({id:"scr_"+uid(),x:sr.x+sp*(i+1),y:w==="top"?sr.y+sr.h+22:sr.y-22,rot:0})}
+    else{var sp2=sr.h/(cfg.screenCount+1);screens.push({id:"scr_"+uid(),x:w==="left"?sr.x+sr.w+22:sr.x-22,y:sr.y+sp2*(i+1),rot:90})}
+  }}
+initScreens();
+
+// Draggable stage furniture
+var backdrop={x:0,y:0,placed:false};
+var pipeTruss={x:0,y:0,placed:false};
+
+function resetStageItems(){
+  var sr=sRect(),w=cfg.stageWall;
+  var bw=cfg.backdropW*PX;
+  if(w==="top"||w==="bottom"){
+    backdrop.x=sr.x+sr.w/2;backdrop.y=w==="top"?sr.y+6:sr.y+sr.h-6;
+    pipeTruss.x=sr.x+sr.w/2;pipeTruss.y=sr.y+sr.h/2;
+  }else{
+    backdrop.x=w==="left"?sr.x+6:sr.x+sr.w-6;backdrop.y=sr.y+sr.h/2;
+    pipeTruss.x=sr.x+sr.w/2;pipeTruss.y=sr.y+sr.h/2;
+  }
+  backdrop.placed=true;pipeTruss.placed=true;
+}
+resetStageItems();
+
+
+function detectHotelWallsFromPdf(callback){
+  if(!pdfBg || !pdfPageW || !pdfPageH){ if(callback) callback(false); return; }
+  var img = new Image();
+  img.onload = function(){
+    var c = document.createElement("canvas");
+    c.width = pdfPageW; c.height = pdfPageH;
+    var ctx = c.getContext("2d");
+    ctx.drawImage(img,0,0,pdfPageW,pdfPageH);
+    var data = ctx.getImageData(0,0,pdfPageW,pdfPageH).data;
+
+    function darkAt(x,y){
+      var i=(y*pdfPageW+x)*4;
+      var r=data[i], g=data[i+1], b=data[i+2], a=data[i+3];
+      if(a<20) return 0;
+      var lum=0.2126*r+0.7152*g+0.0722*b;
+      return lum < 170 ? 1 : 0;
+    }
+
+    var rowScores=new Array(pdfPageH).fill(0);
+    var colScores=new Array(pdfPageW).fill(0);
+    for(var y=0;y<pdfPageH;y++){
+      var rs=0;
+      for(var x=0;x<pdfPageW;x++) rs += darkAt(x,y);
+      rowScores[y]=rs;
+    }
+    for(var x=0;x<pdfPageW;x++){
+      var cs=0;
+      for(var y=0;y<pdfPageH;y++) cs += darkAt(x,y);
+      colScores[x]=cs;
+    }
+
+    var rowThresh=Math.max(20, Math.max.apply(null,rowScores)*0.35);
+    var colThresh=Math.max(20, Math.max.apply(null,colScores)*0.35);
+
+    var yStart=Math.floor(pdfPageH*0.03), yEnd=Math.floor(pdfPageH*0.97);
+    var xStart=Math.floor(pdfPageW*0.03), xEnd=Math.floor(pdfPageW*0.97);
+
+    var top=yStart, bottom=yEnd, left=xStart, right=xEnd;
+    for(var y=yStart;y<yEnd;y++){ if(rowScores[y]>=rowThresh){ top=y; break; } }
+    for(var y=yEnd;y>=yStart;y--){ if(rowScores[y]>=rowThresh){ bottom=y; break; } }
+    for(var x=xStart;x<xEnd;x++){ if(colScores[x]>=colThresh){ left=x; break; } }
+    for(var x=xEnd;x>=xStart;x--){ if(colScores[x]>=colThresh){ right=x; break; } }
+
+    if(right-left < pdfPageW*0.25 || bottom-top < pdfPageH*0.18){
+      pdfWallBox = null;
+      if(callback) callback(false);
+      return;
+    }
+
+    pdfWallBox = {x:left, y:top, w:right-left, h:bottom-top};
+    if(callback) callback(true);
+  };
+  img.onerror = function(){ if(callback) callback(false); };
+  img.src = pdfBg;
+}
+
+
+function addConfidencePair(type){
+  if(!cfg.showStage){ alert("Show stage first."); return; }
+  snapshot();
+  var sf=sFront(), wall=cfg.stageWall;
+  var monW = (type==="CONF_MON_SM") ? 48 : 60;
+  var monH = 10;
+  var gap = 8;
+  var rot = (wall==="left" || wall==="right") ? 90 : 0;
+
+  var x1=sf.x, y1=sf.y, x2=sf.x, y2=sf.y;
+
+  if(wall==="top"){
+    x1 = sf.x - (monW/2 + gap/2);
+    x2 = sf.x + (monW/2 + gap/2);
+    y1 = sf.y + 18;
+    y2 = sf.y + 18;
+  }else if(wall==="bottom"){
+    x1 = sf.x - (monW/2 + gap/2);
+    x2 = sf.x + (monW/2 + gap/2);
+    y1 = sf.y - 18;
+    y2 = sf.y - 18;
+  }else if(wall==="left"){
+    x1 = sf.x + 18;
+    x2 = sf.x + 18;
+    y1 = sf.y - (monW/2 + gap/2);
+    y2 = sf.y + (monW/2 + gap/2);
+  }else{
+    x1 = sf.x - 18;
+    x2 = sf.x - 18;
+    y1 = sf.y - (monW/2 + gap/2);
+    y2 = sf.y + (monW/2 + gap/2);
+  }
+
+  elems.push({
+    id:"el_"+uid(),
+    type:type,
+    label:(type==="CONF_MON_SM"?"CONF. MON (SM)":"CONFIDENCE MONITOR"),
+    x:x1,y:y1,w:monW,h:monH,color:"#00838f",rot:rot
+  });
+  elems.push({
+    id:"el_"+uid(),
+    type:type,
+    label:(type==="CONF_MON_SM"?"CONF. MON (SM)":"CONFIDENCE MONITOR"),
+    x:x2,y:y2,w:monW,h:monH,color:"#00838f",rot:rot
+  });
+  render();
+}
+
+
+function addPipeDrapeWallToScreen(){
+  if(!cfg.showScreens || !screens.length){ alert("Show screens first."); return; }
+  snapshot();
+  elems = elems.filter(function(el){ return el.autoPdKind!=="wallScreen"; });
+  var m=met();
+  for(var i=0;i<screens.length;i++){
+    var sc=screens[i];
+    if(cfg.stageWall==="top" || cfg.stageWall==="bottom"){
+      if(sc.x < m.rX + m.rW/2){
+        var leftEnd = sc.x - (cfg.screenW*PX)/2;
+        var lenL = Math.max(12, leftEnd - m.rX);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:m.rX + lenL/2,y:sc.y,w:lenL,h:8,color:"#6d4c41",rot:0,autoPdKind:"wallScreen"});
+      }else{
+        var rightStart = sc.x + (cfg.screenW*PX)/2;
+        var lenR = Math.max(12, (m.rX+m.rW) - rightStart);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:rightStart + lenR/2,y:sc.y,w:lenR,h:8,color:"#6d4c41",rot:0,autoPdKind:"wallScreen"});
+      }
+    }else{
+      if(sc.y < m.rY + m.rH/2){
+        var topLen = Math.max(12, sc.y - m.rY);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:sc.x,y:m.rY + topLen/2,w:topLen,h:8,color:"#6d4c41",rot:90,autoPdKind:"wallScreen"});
+      }else{
+        var botLen = Math.max(12, (m.rY+m.rH) - sc.y);
+        elems.push({id:"el_"+uid(),type:"PIPE_DRAPE",label:"P&D WALL→SCREEN",x:sc.x,y:sc.y + botLen/2,w:botLen,h:8,color:"#6d4c41",rot:90,autoPdKind:"wallScreen"});
+      }
+    }
+  }
+  render();
+}
+
+function addPipeDrapeScreenToStage(){
+  if(!cfg.showStage || !cfg.showScreens || !screens.length){ alert("Show stage and screens first."); return; }
+  snapshot();
+  elems = elems.filter(function(el){ return el.autoPdKind!=="screenStage"; });
+
+  var sr = sRect();
+
+  for(var i=0;i<screens.length;i++){
+    var sc = screens[i];
+    var sw = cfg.screenW * PX;
+    var sh = 8;
+
+    var screenLeft = sc.x - sw/2;
+    var screenRight = sc.x + sw/2;
+    var screenTop = sc.y - sh/2;
+    var screenBottom = sc.y + sh/2;
+
+    var stageLeft = sr.x;
+    var stageRight = sr.x + sr.w;
+    var stageTop = sr.y;
+    var stageBottom = sr.y + sr.h;
+
+    // Determine relative position by geometry, not cfg.stageWall.
+    if(screenRight <= stageLeft){
+      // Screen is left of stage: horizontal run from screen right edge to stage left edge
+      var len1 = Math.max(12, stageLeft - screenRight);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:screenRight + len1/2, y:sc.y, w:len1, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+      });
+    }else if(screenLeft >= stageRight){
+      // Screen is right of stage
+      var len2 = Math.max(12, screenLeft - stageRight);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:stageRight + len2/2, y:sc.y, w:len2, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+      });
+    }else if(screenBottom <= stageTop){
+      // Screen is above stage: vertical run
+      var len3 = Math.max(12, stageTop - screenBottom);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:sc.x, y:screenBottom + len3/2, w:len3, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+      });
+    }else if(screenTop >= stageBottom){
+      // Screen is below stage: vertical run
+      var len4 = Math.max(12, screenTop - stageBottom);
+      elems.push({
+        id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+        x:sc.x, y:stageBottom + len4/2, w:len4, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+      });
+    }else{
+      // Overlapping / ambiguous case: connect center-to-nearest stage edge by shortest axis.
+      var gapLeft = Math.abs(stageLeft - screenRight);
+      var gapRight = Math.abs(screenLeft - stageRight);
+      var gapTop = Math.abs(stageTop - screenBottom);
+      var gapBottom = Math.abs(screenTop - stageBottom);
+      var minGap = Math.min(gapLeft, gapRight, gapTop, gapBottom);
+
+      if(minGap === gapLeft){
+        var len5 = Math.max(12, stageLeft - screenRight);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:screenRight + len5/2, y:sc.y, w:len5, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+        });
+      }else if(minGap === gapRight){
+        var len6 = Math.max(12, screenLeft - stageRight);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:stageRight + len6/2, y:sc.y, w:len6, h:8, color:"#a1887f", rot:0, autoPdKind:"screenStage"
+        });
+      }else if(minGap === gapTop){
+        var len7 = Math.max(12, stageTop - screenBottom);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:sc.x, y:screenBottom + len7/2, w:len7, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+        });
+      }else{
+        var len8 = Math.max(12, screenTop - stageBottom);
+        elems.push({
+          id:"el_"+uid(), type:"PIPE_DRAPE", label:"P&D SCREEN→STAGE",
+          x:sc.x, y:stageBottom + len8/2, w:len8, h:8, color:"#a1887f", rot:90, autoPdKind:"screenStage"
+        });
+      }
+    }
+  }
+  render();
+}
+
+function getObj(id,tp){
+  if(id==="backdrop")return backdrop;
+  if(id==="pipeTruss")return pipeTruss;
+  if(tp==="screen")for(var i=0;i<screens.length;i++){if(screens[i].id===id)return screens[i]}
+  if(tp==="elem")for(var j=0;j<elems.length;j++){if(elems[j].id===id)return elems[j]}
+  for(var gci=0;gci<clientTables.length;gci++){if(clientTables[gci].id===id)return clientTables[gci]}
+  for(var k=0;k<tables.length;k++){if(tables[k].id===id)return tables[k]}
+  return null;
+}
+
+function addElem(type){
+  if(mode==="placeElem"&&placingElemType===type){
+    mode="select";placingElemType=null;
+  }else{
+    placingElemType=type;
+    mode="placeElem";
+  }
+  render();
+}
+function setMonSize(id,size){
+  for(var i=0;i<elems.length;i++){
+    if(elems[i].id===id){
+      elems[i].monSize=size;
+      elems[i].w=size;
+      elems[i].h=Math.round(size*0.25);
+      elems[i].label=size+'in MON '+(elems[i].mountType==='truss'?'TRUSS':'P+D');
+      break;
+    }
+  }
+  render();
+}
+function setMonMount(id,mt){
+  for(var i=0;i<elems.length;i++){
+    if(elems[i].id===id){
+      elems[i].mountType=mt;
+      elems[i].label=elems[i].monSize+'in MON '+(mt==='truss'?'TRUSS':'P+D');
+      break;
+    }
+  }
+  render();
+}
+
+function isDrapeType(type){return type==="DRAPE_8"||type==="DRAPE_3"||type==="PIPE_DRAPE";}
+
+function placeElemAt(x,y){
+  var item;for(var ci=0;ci<ELEM_CATALOG.length;ci++){for(var ii=0;ii<ELEM_CATALOG[ci].items.length;ii++){if(ELEM_CATALOG[ci].items[ii].type===placingElemType){item=ELEM_CATALOG[ci].items[ii];break}}if(item)break}
+  if(!item)return;snapshot();
+  elems.push({id:"el_"+uid(),type:placingElemType,label:item.label,x:x,y:y,w:item.w,h:item.h,color:item.color,isCircle:item.isCircle||false,isDoor:item.isDoor||false,isDouble:item.isDouble||false,isRoll:item.isRoll||false,doorW:item.doorW||0,isMounted:item.isMounted||false,mountType:item.mountType||"",monSize:item.monSize||0,rot:0});
+  render();
+}
+
+function clearElements(){tables=[];clientTables=[];screens=[];elems=[];clearSel();mode="select";initScreens();render()}
+function clearPdf(){pdfBg=null;pdfPageW=0;pdfPageH=0;pdfWallBox=null;render()}
+
+function rotateSelection(deg){
+  snapshot();
+  selection.forEach(function(s){
+    var obj=getObj(s.id,s.tp);if(!obj)return;
+    if(s.tp==="screen"){obj.rot=((obj.rot||0)+deg+360)%360}
+    else if(s.tp==="elem"){obj.rot=((obj.rot||0)+deg+360)%360}
+    else{obj.facing=((obj.facing||0)+deg+360)%360}
+  });render();
+}
+
+function rotateAll(deg){snapshot();for(var i=0;i<tables.length;i++)tables[i].facing=((tables[i].facing||0)+deg+360)%360;for(var rci=0;rci<clientTables.length;rci++)clientTables[rci].facing=((clientTables[rci].facing||0)+deg+360)%360;render()}
+
+function faceAllStage(){
+  snapshot();
+  var f=facingForWall();
+  for(var i=0;i<tables.length;i++){ tables[i].facing=f; }
+  for(var fci=0;fci<clientTables.length;fci++){ clientTables[fci].facing=f; }
+  render();
+}
+
+function redistributeTables(){
+  if(tables.length<1)return;snapshot();
+  var m=met(),sr=sRect(),w=cfg.stageWall,sp=cfg.tableSpacing*PX;
+  var n=tables.length;
+  // Use manual cols/rows if set, otherwise auto square
+  var cols,rows;
+  if(cfg.tableCols>0&&cfg.tableRows>0){
+    cols=cfg.tableCols;rows=cfg.tableRows;
+    // If user set fewer slots than tables, expand rows
+    while(cols*rows<n)rows++;
+  }else if(cfg.tableCols>0){
+    cols=cfg.tableCols;rows=Math.ceil(n/cols);
+  }else if(cfg.tableRows>0){
+    rows=cfg.tableRows;cols=Math.ceil(n/rows);
+  }else{
+    cols=Math.ceil(Math.sqrt(n));rows=Math.ceil(n/cols);
+  }
+  // Update config display values
+  cfg.tableCols=cols;cfg.tableRows=rows;
+  // Available area opposite the stage
+  var aX,aY,aW,aH;
+  if(w==="top"){aX=m.rX;aY=sr.y+sr.h+30;aW=m.rW;aH=m.rY+m.rH-sr.y-sr.h-40}
+  else if(w==="bottom"){aX=m.rX;aY=m.rY+10;aW=m.rW;aH=sr.y-m.rY-40}
+  else if(w==="left"){aX=sr.x+sr.w+30;aY=m.rY;aW=m.rX+m.rW-sr.x-sr.w-40;aH=m.rH}
+  else{aX=m.rX+10;aY=m.rY;aW=sr.x-m.rX-40;aH=m.rH}
+  var cellW=Math.max(sp,40);
+  var cellH=Math.max(sp,40);
+  var gridW=cellW*(cols-1);
+  var gridH=cellH*(rows-1);
+  var startX=aX+(aW-gridW)/2;
+  var startY=aY+(aH-gridH)/2;
+  var sf=sFront();
+  for(var i=0;i<n;i++){
+    var row=Math.floor(i/cols);
+    var col=i%cols;
+    // Count items in this row
+    var rowStart=row*cols;
+    var itemsThisRow=Math.min(cols,n-rowStart);
+    // Center this row if it has fewer items
+    var rowGridW=cellW*(itemsThisRow-1);
+    var rowOffX=aX+(aW-rowGridW)/2;
+    tables[i].x=rowOffX+col*cellW;
+    tables[i].y=startY+row*cellH;
+    if(tables[i].facing===undefined||tables[i].facing===null)tables[i].facing=facingForWall();
+    tables[i].label=""+(i+1);
+  }
+  render();
+}
+
+function applyCustomLayout(){
+  if(customLayout.length===0)return;
+  snapshot();
+  tables=[];
+  var m=met(),sr=sRect(),w=cfg.stageWall,sp=cfg.tableSpacing*PX;
+  // Available area
+  var aX,aY,aW,aH;
+  if(w==="top"){aX=m.rX;aY=sr.y+sr.h+30;aW=m.rW;aH=m.rY+m.rH-sr.y-sr.h-40}
+  else if(w==="bottom"){aX=m.rX;aY=m.rY+10;aW=m.rW;aH=sr.y-m.rY-40}
+  else if(w==="left"){aX=sr.x+sr.w+30;aY=m.rY;aW=m.rX+m.rW-sr.x-sr.w-40;aH=m.rH}
+  else{aX=m.rX+10;aY=m.rY;aW=sr.x-m.rX-40;aH=m.rH}
+  var totalRows=customLayout.length;
+  var rowH=Math.max(sp,aH/(totalRows+1));
+  var face=facingForWall();
+  var num=1;
+  for(var ri=0;ri<totalRows;ri++){
+    var cols=customLayout[ri];
+    if(cols<1)continue;
+    var colW=Math.max(sp,aW/(cols+1));
+    // Center this row
+    var rowW=colW*(cols-1);
+    var rowStartX=aX+(aW-rowW)/2;
+    var rowY=aY+rowH*(ri+1);
+    for(var ci2=0;ci2<cols;ci2++){
+      tables.push({id:uid(),x:rowStartX+colW*ci2,y:rowY,label:""+num,facing:face});
+      num++;
+    }
+  }
+  // Update cfg to reflect
+  cfg.tableRows=totalRows;
+  cfg.tableCols=Math.max.apply(null,customLayout);
+  render();
+}
+
+function parseCustomLayout(text){
+  customLayoutText=text;
+  customLayout=[];
+  // Parse formats: "5,6,5" or "5-6-5" or "5 6 5" or multiline
+  var parts=text.replace(/[\n\r]+/g,",").replace(/[\-\/|]+/g,",").split(",");
+  for(var pi=0;pi<parts.length;pi++){
+    var v=parseInt(parts[pi].trim());
+    if(!isNaN(v)&&v>0)customLayout.push(v);
+  }
+  return customLayout;
+}
+
+function autoPlaceByAttendees(){
+  var attendees = Math.max(0, Number(cfg.attendeeCount)||0);
+  var perTable = Math.max(1, Number(cfg.chairsPerTable)||1);
+  var needed = Math.ceil(attendees / perTable);
+  if(needed < 1){ alert("Enter at least 1 attendee."); return; }
+  autoPlace(needed);
+}
+function autoPlace(n){snapshot();tables=[];cfg.tableRows=0;cfg.tableCols=0;for(var i=0;i<n;i++)tables.push({id:uid(),x:0,y:0,label:""+(i+1),facing:facingForWall()});redistributeTables()}
+
+function deleteSel(){
+  snapshot();
+  selection.forEach(function(s){
+    if(s.tp==="table"){clientTables=clientTables.filter(function(ct){return ct.id!==s.id});tables=tables.filter(function(t){return t.id!==s.id})}
+    else if(s.tp==="elem"){elems=elems.filter(function(e){return e.id!==s.id})}
+    else if(s.tp==="screen"){screens=screens.filter(function(sc){return sc.id!==s.id})}
+  });clearSel();render();
+}
+
+function getMeasurements(){var ms=[],sf=sFront();
+  for(var mci=0;mci<clientTables.length;mci++){ms.push({from:sf,to:clientTables[mci],label:(dst(sf,clientTables[mci])/PX).toFixed(0)+"'-0\"",key:"sc"+mci})}
+  var all=tables.concat(clientTables);var seen={};
+  for(var i=0;i<all.length;i++){var minD=Infinity,minJ=-1;for(var j=0;j<all.length;j++){if(i!==j){var d=dst(all[i],all[j]);if(d<minD){minD=d;minJ=j}}}
+    if(minJ>=0&&minD<500){var k=Math.min(i,minJ)+"-"+Math.max(i,minJ);if(!seen[k]){seen[k]=1;ms.push({from:all[i],to:all[minJ],label:(minD/PX).toFixed(0)+"'-0\"",key:k})}}}return ms}
+
+function snapBackdropCenter(){
+  snapshot();
+  var sr2=sRect(),w2=cfg.stageWall;
+  if(w2==="top"||w2==="bottom"){backdrop.x=sr2.x+sr2.w/2;}
+  else{backdrop.y=sr2.y+sr2.h/2;}
+  render();
+}
+function snapPipeCenter(){
+  snapshot();
+  var sr2=sRect(),w2=cfg.stageWall;
+  if(w2==="top"||w2==="bottom"){pipeTruss.x=sr2.x+sr2.w/2;}
+  else{pipeTruss.y=sr2.y+sr2.h/2;}
+  render();
+}
+function snapScreensCenter(){
+  snapshot();
+  var sr2=sRect(),w2=cfg.stageWall,m2=met();
+  for(var si2=0;si2<screens.length;si2++){
+    if(w2==="top"||w2==="bottom"){
+      var sp3=sr2.w/(screens.length+1);
+      screens[si2].x=sr2.x+sp3*(si2+1);
+    }else{
+      var sp4=sr2.h/(screens.length+1);
+      screens[si2].y=sr2.y+sp4*(si2+1);
+    }
+  }
+  render();
+}
+function snapScreensStageWallCenter(){
+  // Snap screens centered between stage edges and room walls (L/R)
+  snapshot();
+  var sr2=sRect(),w2=cfg.stageWall,m2=met();
+  if(w2==="top"||w2==="bottom"){
+    // Left screen: centered between left wall and left edge of stage
+    // Right screen: centered between right edge of stage and right wall
+    var stageLeft=sr2.x;
+    var stageRight=sr2.x+sr2.w;
+    var roomLeft=m2.rX;
+    var roomRight=m2.rX+m2.rW;
+    if(screens.length===1){
+      // Single screen: center on stage
+      screens[0].x=sr2.x+sr2.w/2;
+    }else if(screens.length===2){
+      screens[0].x=(roomLeft+stageLeft)/2;
+      screens[1].x=(stageRight+roomRight)/2;
+    }else{
+      // First goes between left wall and stage
+      screens[0].x=(roomLeft+stageLeft)/2;
+      // Last goes between stage and right wall
+      screens[screens.length-1].x=(stageRight+roomRight)/2;
+      // Middle ones evenly across stage width
+      for(var si3=1;si3<screens.length-1;si3++){
+        var sp5=sr2.w/(screens.length-2+1);
+        screens[si3].x=sr2.x+sp5*si3;
+      }
+    }
+    // Y position: same row, at stage front
+    var sy2=w2==="top"?sr2.y+sr2.h+20:sr2.y-20;
+    for(var si4=0;si4<screens.length;si4++){screens[si4].y=sy2;}
+  }else{
+    // Left/right stage walls
+    var stageTop=sr2.y;
+    var stageBot=sr2.y+sr2.h;
+    var roomTop=m2.rY;
+    var roomBot=m2.rY+m2.rH;
+    if(screens.length===1){
+      screens[0].y=sr2.y+sr2.h/2;
+    }else if(screens.length===2){
+      screens[0].y=(roomTop+stageTop)/2;
+      screens[1].y=(stageBot+roomBot)/2;
+    }else{
+      screens[0].y=(roomTop+stageTop)/2;
+      screens[screens.length-1].y=(stageBot+roomBot)/2;
+      for(var si5=1;si5<screens.length-1;si5++){
+        var sp6=sr2.h/(screens.length-2+1);
+        screens[si5].y=sr2.y+sp6*si5;
+      }
+    }
+    var sx2=w2==="left"?sr2.x+sr2.w+20:sr2.x-20;
+    for(var si6=0;si6<screens.length;si6++){screens[si6].x=sx2;}
+  }
+  render();
+}
+function snapSelCenterX(){
+  snapshot();var m=met();
+  selection.forEach(function(s){var obj=getObj(s.id,s.tp);if(obj)obj.x=m.rX+m.rW/2;});
+  render();
+}
+function snapSelCenterY(){
+  snapshot();var m=met();
+  selection.forEach(function(s){var obj=getObj(s.id,s.tp);if(obj)obj.y=m.rY+m.rH/2;});
+  render();
+}
+function snapSelCenterBoth(){
+  snapshot();var m=met();
+  selection.forEach(function(s){var obj=getObj(s.id,s.tp);if(obj){obj.x=m.rX+m.rW/2;obj.y=m.rY+m.rH/2;}});
+  render();
+}
+function snapSelStageFront(){
+  snapshot();var sf5=sFront(),sr2=sRect(),w2=cfg.stageWall;
+  selection.forEach(function(s){
+    var obj=getObj(s.id,s.tp);if(!obj)return;
+    if(w2==="top"||w2==="bottom"){obj.x=sr2.x+sr2.w/2;}
+    else{obj.y=sr2.y+sr2.h/2;}
+  });
+  render();
+}
+
+
+
+function getCadStorageKey(name){ return "eventCadProject::"+name; }
+
+function showSyncStatus(msg){
+  var el=document.getElementById("stats");
+  if(!el)return;
+  var cur=el.innerHTML;
+  el.innerHTML = '<span style="color:#00695c;font-weight:700">'+msg+'</span> &middot; ' + cur;
+}
+
+function serializeCadState(){
+  return {
+    currentCadName: currentCadName,
+    cfg: JSON.parse(JSON.stringify(cfg)),
+    tables: JSON.parse(JSON.stringify(tables)),
+    clientTables: JSON.parse(JSON.stringify(clientTables)),
+    screens: JSON.parse(JSON.stringify(screens)),
+    elems: JSON.parse(JSON.stringify(elems)),
+    pdfBg: pdfBg,
+    pdfPageW: pdfPageW,
+    pdfPageH: pdfPageH,
+    pdfWallBox: pdfWallBox ? JSON.parse(JSON.stringify(pdfWallBox)) : null,
+    measuredLines: JSON.parse(JSON.stringify(measuredLines)),
+    customLayout: JSON.parse(JSON.stringify(customLayout)),
+    customLayoutText: customLayoutText,
+    backdrop: JSON.parse(JSON.stringify(backdrop)),
+    pipeTruss: JSON.parse(JSON.stringify(pipeTruss))
+  };
+}
+
+function applyCadState(state){
+  if(!state) return;
+  if(state.cfg) cfg = JSON.parse(JSON.stringify(state.cfg));
+  tables = state.tables ? JSON.parse(JSON.stringify(state.tables)) : [];
+  clientTables = state.clientTables ? JSON.parse(JSON.stringify(state.clientTables)) : [];
+  screens = state.screens ? JSON.parse(JSON.stringify(state.screens)) : [];
+  elems = state.elems ? JSON.parse(JSON.stringify(state.elems)) : [];
+  pdfBg = state.pdfBg || null;
+  pdfPageW = state.pdfPageW || 0;
+  pdfPageH = state.pdfPageH || 0;
+  pdfWallBox = state.pdfWallBox ? JSON.parse(JSON.stringify(state.pdfWallBox)) : null;
+  measuredLines = state.measuredLines ? JSON.parse(JSON.stringify(state.measuredLines)) : [];
+  customLayout = state.customLayout ? JSON.parse(JSON.stringify(state.customLayout)) : [];
+  customLayoutText = state.customLayoutText || "";
+  if(state.backdrop){ backdrop = JSON.parse(JSON.stringify(state.backdrop)); }
+  if(state.pipeTruss){ pipeTruss = JSON.parse(JSON.stringify(state.pipeTruss)); }
+  currentCadName = state.currentCadName || "Untitled CAD";
+  clearSel();
+  mode="select";
+  measurePt1=null;
+  measurePt2=null;
+  render();
+}
+
+
+async function saveCadProject(){
+  var name = prompt("Save CAD as:", currentCadName || "Untitled CAD");
+  if(!name) return;
+  currentCadName = name.trim();
+  var payload = serializeCadState();
+  payload.currentCadName = currentCadName;
+  showSyncStatus("Saving...");
+  try{
+    var res = await fetch(SYNC_API_BASE + "/" + encodeURIComponent(currentCadName), {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("Save failed (" + res.status + ")");
+    render();
+    alert('Saved "'+currentCadName+'" to cloud sync');
+  }catch(err){
+    alert("Cloud save failed: " + err.message);
+  }
+}
+
+
+function closeLoadModal(){
+  var modal=document.getElementById("loadModal");
+  if(modal) modal.classList.remove("show");
+}
+
+async function deleteCadProject(name){
+  if(!confirm('Delete "'+name+'"?')) return;
+  try{
+    var res = await fetch(SYNC_API_BASE + "/" + encodeURIComponent(name), { method:"DELETE" });
+    if(!res.ok) throw new Error("Delete failed (" + res.status + ")");
+    await openLoadCadModal();
+  }catch(err){
+    alert("Cloud delete failed: " + err.message);
+  }
+}
+
+function renderLoadList(projects){
+  var list=document.getElementById("loadList");
+  if(!list) return;
+  if(!projects || !projects.length){
+    list.innerHTML = '<div class="load-empty">No synced CAD projects found.</div>';
+    return;
+  }
+  list.innerHTML = projects.map(function(p){
+    var nm = String(p.name || "");
+    var dt = p.updated_at ? String(p.updated_at) : "";
+    return '<div class="load-item">' +
+      '<div>' +
+        '<div class="load-name">'+nm.replace(/</g,"&lt;")+'</div>' +
+        '<div class="load-date">'+dt.replace(/</g,"&lt;")+'</div>' +
+      '</div>' +
+      '<div class="load-actions">' +
+        '<button class="load-btn primary" onclick="loadCadProjectByName(\''+nm.replace(/'/g,"\'")+'\')">Load</button>' +
+        '<button class="load-btn" onclick="deleteCadProject(\''+nm.replace(/'/g,"\'")+'\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+async function openLoadCadModal(){
+  showSyncStatus("Loading list...");
+  try{
+    var listRes = await fetch(SYNC_API_BASE);
+    if(!listRes.ok) throw new Error("List failed (" + listRes.status + ")");
+    var listData = await listRes.json();
+    var projects = (listData.projects || []).slice().sort(function(a,b){
+      return String(b.updated_at||"").localeCompare(String(a.updated_at||""));
+    });
+    renderLoadList(projects);
+    var modal=document.getElementById("loadModal");
+    if(modal) modal.classList.add("show");
+  }catch(err){
+    alert("Cloud load failed: " + err.message);
+  }
+}
+
+async function loadCadProjectByName(name){
+  if(!name) return;
+  try{
+    var res = await fetch(SYNC_API_BASE + "/" + encodeURIComponent(name));
+    if(!res.ok) throw new Error("Load failed (" + res.status + ")");
+    var data = await res.json();
+    applyCadState(data.project);
+    closeLoadModal();
+  }catch(err){
+    alert("Cloud load failed: " + err.message);
+  }
+}
+
+async function loadCadProject(){
+  await openLoadCadModal();
+}
+
+function createNewCad(){
+  var name = prompt("New CAD name:", "New CAD");
+  if(!name) return;
+  snapshot();
+  currentCadName = name.trim();
+  tables=[]; clientTables=[]; elems=[]; measuredLines=[]; customLayout=[]; customLayoutText="";
+  pdfBg=null; pdfPageW=0; pdfPageH=0; pdfWallBox=null;
+  initScreens();
+  resetStageItems();
+  clearSel();
+  mode="select";
+  measurePt1=null;
+  measurePt2=null;
+  render();
+}
+
+// ══════ PDF & EVENTS ══════
+document.getElementById("pdfIn").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;pdfjsLib.getDocument(URL.createObjectURL(f)).promise.then(function(pdf){pdf.getPage(1).then(function(pg){var vp=pg.getViewport({scale:1.5});var c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise.then(function(){pdfBg=c.toDataURL();pdfPageW=vp.width;pdfPageH=vp.height;pdfWallBox=null;render()})})}).catch(function(err){alert("PDF error: "+err.message)})});
+document.getElementById("btnUpload").onclick=function(){document.getElementById("pdfIn").click()};
+document.getElementById("btnNewCad").onclick=createNewCad;
+document.getElementById("btnSaveCad").onclick=saveCadProject;
+document.getElementById("btnLoadCad").onclick=loadCadProject;
+document.getElementById("loadModalClose").onclick=closeLoadModal;
+document.getElementById("loadModal").addEventListener("click",function(e){ if(e.target && e.target.id==="loadModal") closeLoadModal(); });
+document.getElementById("btnFit").onclick=fitCadToView;
+document.getElementById("btnZoomIn").onclick=zoomInCad;
+document.getElementById("btnZoomOut").onclick=zoomOutCad;
+window.addEventListener("resize", function(){ fitCadToView(); });
+document.getElementById("btnDetectWalls").onclick=function(){if(!pdfBg){alert("Upload a PDF first.");return;}detectHotelWallsFromPdf(function(ok){if(!ok)alert("Could not detect walls on this PDF.");render();});};
+document.getElementById("btnClearElems").onclick=function(){snapshot();clearElements()};
+document.getElementById("btnClearPdf").onclick=function(){snapshot();clearPdf()};
+document.getElementById("btnUndo").onclick=undo;
+document.getElementById("togP").onclick=function(){showPanel=!showPanel;$("#panel").style.display=showPanel?"":"none";document.getElementById("togP").textContent=showPanel?"\u25C0 HIDE":"\u25B6 SHOW"};
+
+document.getElementById("btnExport").onclick=function(){
+  var svg=document.getElementById("cad");
+  var svgData=new XMLSerializer().serializeToString(svg);
+  var w=parseInt(svg.getAttribute("width")),h=parseInt(svg.getAttribute("height"));
+  var canvas=document.createElement("canvas");
+  var scale=2;
+  canvas.width=w*scale;canvas.height=h*scale;
+  var ctx=canvas.getContext("2d");
+  ctx.fillStyle="#ffffff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  var img=new Image();
+  img.onload=function(){
+    ctx.drawImage(img,0,0,w*scale,h*scale);
+    try{
+      var orient=w>h?"landscape":"portrait";
+      var pdf=new jspdf.jsPDF({orientation:orient,unit:"pt",format:[w*0.75,h*0.75]});
+      var imgData=canvas.toDataURL("image/png",1.0);
+      pdf.addImage(imgData,"PNG",0,0,w*0.75,h*0.75);
+      var fname=cfg.eventName.replace(/[^a-zA-Z0-9]/g,"_")+"_"+cfg.sessionName.replace(/[^a-zA-Z0-9]/g,"_")+".pdf";
+      pdf.save(fname);
+    }catch(err){alert("PDF export error: "+err.message)}
+  };
+  img.onerror=function(){
+    alert("Could not render SVG to image. Try a simpler layout or use browser Print to PDF.");
+  };
+  var blob=new Blob([svgData],{type:"image/svg+xml;charset=utf-8"});
+  img.src=URL.createObjectURL(blob);
+};
+
+function svgPt(e){var svg=$("#cad"),pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse())}
+
+$("#cad").addEventListener("click",function(e){
+  if(e.target.closest("[data-d]"))return;
+  var p=svgPt(e);
+  if(mode==="placeTable"){snapshot();var sf=sFront();tables.push({id:uid(),x:p.x,y:p.y,label:""+(tables.length+1),facing:facingForWall()});render()}
+  else if(mode==="placeClient"){snapshot();var sf2=sFront();clientTables.push({id:"cli_"+uid(),x:p.x,y:p.y,facing:facingForWall()});render()}
+  else if(mode==="placeElem"){
+    if(isDrapeType(placingElemType)){
+      // Start drape drag - place it and we'll stretch on mousemove
+      placeElemAt(p.x,p.y);
+      var lastEl=elems[elems.length-1];
+      if(lastEl)drawingDrape={id:lastEl.id,startX:p.x,startY:p.y};
+    }else{placeElemAt(p.x,p.y)}
+  }
+  else if(mode==="measure1"){measurePt1={x:p.x,y:p.y};mode="measure2";render()}
+  else if(mode==="measure2"){measurePt2={x:p.x,y:p.y};measuredLines.push({a:{x:measurePt1.x,y:measurePt1.y},b:{x:measurePt2.x,y:measurePt2.y}});mode="select";render()}
+  else{clearSel();render()}
+});
+
+// MOUSEDOWN: select or start drag. Shift+click = multi-select.
+$("#cad").addEventListener("mousedown",function(e){
+  var g=e.target.closest("[data-d]");if(!g||mode!=="select")return;
+  e.preventDefault();e.stopPropagation();
+  var id=g.getAttribute("data-d"),tp=g.getAttribute("data-tp")||"table",p=svgPt(e);
+  var obj=getObj(id,tp);if(!obj)return;
+
+  if(e.shiftKey){
+    // Toggle in selection
+    if(isSel(id)){selection=selection.filter(function(s){return s.id!==id})}
+    else{selection.push({id:id,tp:tp})}
+    render();return;
+  }
+
+  // If clicking an already-selected item, start multi-drag
+  if(isSel(id)&&selection.length>1){
+    snapshot();dragId=id;dragType=tp;dragMulti=true;
+    multiOffsets=[];
+    selection.forEach(function(s){
+      var o=getObj(s.id,s.tp);if(o){multiOffsets.push({id:s.id,tp:s.tp,dx:o.x-p.x,dy:o.y-p.y})}
+    });
+    render();return;
+  }
+
+  // Single select
+  clearSel();selection.push({id:id,tp:tp});
+  snapshot();dragId=id;dragType=tp;dragMulti=false;dragOff={x:p.x-obj.x,y:p.y-obj.y};
+  render();
+});
+
+$("#cad").addEventListener("mousemove",function(e){
+  if(!dragId)return;var p=svgPt(e);
+  if(drawingDrape){
+    var drEl=null;for(var dri=0;dri<elems.length;dri++){if(elems[dri].id===drawingDrape.id){drEl=elems[dri];break}}
+    if(drEl){
+      var dx2=p.x-drawingDrape.startX,dy2=p.y-drawingDrape.startY;
+      var dist2=Math.sqrt(dx2*dx2+dy2*dy2);
+      drEl.w=Math.max(10,dist2);
+      // Set rotation to follow drag direction
+      drEl.rot=Math.atan2(dy2,dx2)*180/Math.PI;
+      // Center between start and current
+      drEl.x=(drawingDrape.startX+p.x)/2;
+      drEl.y=(drawingDrape.startY+p.y)/2;
+    }
+    render();return;
+  }
+  if(dragMulti){
+    multiOffsets.forEach(function(mo){
+      var o=getObj(mo.id,mo.tp);if(o){o.x=p.x+mo.dx;o.y=p.y+mo.dy}
+    });
+  }else{
+    var nx=p.x-dragOff.x,ny=p.y-dragOff.y;
+    var obj=getObj(dragId,dragType);if(obj){obj.x=nx;obj.y=ny}
+  }
+  render();
+});
+$("#cad").addEventListener("mouseup",function(){dragId=null;dragMulti=false;multiOffsets=[];drawingDrape=null;});
+$("#cad").addEventListener("mouseleave",function(){dragId=null;dragMulti=false;multiOffsets=[];drawingDrape=null;});
+
+// ══════ SVG SHAPES ══════
+function crescSVG(x,y,d,ch,cR,lbl,isCl,sel,id,f){
+  var r=(d/2/12)*PX;f=f||0;var fill=isCl?"#d6eaf8":"#f7f7f7",stk=sel?"#0066cc":"#333",sw=sel?2.5:1;
+  var s='<g transform="translate('+x+","+y+") rotate("+f+')" data-d="'+id+'" data-tp="table" style="cursor:grab">';
+  s+='<circle r="'+r+'" fill="'+fill+'" stroke="'+stk+'" stroke-width="'+sw+'"/>';
+  var span=Math.PI*.82,ctr=Math.PI/2;
+  for(var i=0;i<ch;i++){var t=ctr-span/2+span*(i+.5)/ch;s+='<circle cx="'+(Math.cos(t)*(r+cR+cfg.chairGapIn/12*PX))+'" cy="'+(Math.sin(t)*(r+cR+cfg.chairGapIn/12*PX))+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>'}
+  s+='<polygon points="0,'+(-r+3)+" -3,"+(-r+8)+" 3,"+(-r+8)+'" fill="'+stk+'" opacity="0.4"/>';
+  s+='<text y="2" text-anchor="middle" dominant-baseline="middle" fill="'+(isCl?"#1a5276":"#555")+'" font-size="'+(isCl?7:6)+'" font-weight="'+(isCl?800:500)+'" font-family="'+FF+'" style="pointer-events:none" transform="rotate('+(-f)+')">'+(isCl?"CLIENT":lbl)+"</text></g>";return s}
+
+function roundSVG(x,y,d,ch,cR,lbl,isCl,sel,id,f){
+  var r=(d/2/12)*PX;f=f||0;var fill=isCl?"#d6eaf8":"#f7f7f7",stk=sel?"#0066cc":"#333",sw=sel?2.5:1;
+  var s='<g transform="translate('+x+","+y+") rotate("+f+')" data-d="'+id+'" data-tp="table" style="cursor:grab">';
+  s+='<circle r="'+r+'" fill="'+fill+'" stroke="'+stk+'" stroke-width="'+sw+'"/>';
+  for(var i=0;i<ch;i++){var a=(2*Math.PI*i)/ch-Math.PI/2;s+='<circle cx="'+(Math.cos(a)*(r+cR+cfg.chairGapIn/12*PX))+'" cy="'+(Math.sin(a)*(r+cR+cfg.chairGapIn/12*PX))+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>'}
+  s+='<text y="2" text-anchor="middle" fill="'+(isCl?"#1a5276":"#555")+'" font-size="'+(isCl?7:6)+'" font-weight="'+(isCl?800:500)+'" font-family="'+FF+'" style="pointer-events:none" transform="rotate('+(-f)+')">'+(isCl?"CLIENT":lbl)+"</text></g>";return s}
+
+function rectTSVG(x,y,w,d,lbl,sel,id,f){
+  var pw=(w/12)*PX,pd=(d/12)*PX;f=f||0;
+  var cR=(cfg.chairSizeIn/2/12)*PX;
+  var nChairs=cfg.chairsPerTable;
+  var stk=sel?"#0066cc":"#333",sw2=sel?2.5:1;
+  var s='<g transform="translate('+x+","+y+") rotate("+f+')" data-d="'+id+'" data-tp="table" style="cursor:grab">';
+  s+='<rect x="'+(-pw/2)+'" y="'+(-pd/2)+'" width="'+pw+'" height="'+pd+'" fill="#f7f7f7" stroke="'+stk+'" stroke-width="'+sw2+'"/>';
+  // Distribute chairs: half on each long side, plus ends
+  var longSide=pw>pd;
+  var sideLen=longSide?pw:pd;
+  var perSide=Math.floor(nChairs/2);
+  var ends=nChairs-perSide*2;
+  // Chairs along top edge (or left edge if portrait)
+  for(var ci=0;ci<perSide;ci++){
+    var t=(ci+0.5)/perSide;
+    if(longSide){
+      var cx2=-pw/2+t*pw, cy2=-pd/2-cR-cfg.chairGapIn/12*PX;
+      s+='<circle cx="'+cx2+'" cy="'+cy2+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';
+      // Bottom side
+      s+='<circle cx="'+cx2+'" cy="'+(pd/2+cR+cfg.chairGapIn/12*PX)+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';
+    }else{
+      var cx3=-pw/2-cR-cfg.chairGapIn/12*PX, cy3=-pd/2+t*pd;
+      s+='<circle cx="'+cx3+'" cy="'+cy3+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';
+      s+='<circle cx="'+(pw/2+cR+cfg.chairGapIn/12*PX)+'" cy="'+cy3+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';
+    }
+  }
+  // End chairs
+  if(ends>=1){
+    if(longSide){s+='<circle cx="'+(pw/2+cR+cfg.chairGapIn/12*PX)+'" cy="0" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';}
+    else{s+='<circle cx="0" cy="'+(pd/2+cR+cfg.chairGapIn/12*PX)+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';}
+  }
+  if(ends>=2){
+    if(longSide){s+='<circle cx="'+(-pw/2-cR-cfg.chairGapIn/12*PX)+'" cy="0" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';}
+    else{s+='<circle cx="0" cy="'+(-pd/2-cR-cfg.chairGapIn/12*PX)+'" r="'+cR+'" fill="none" stroke="#555" stroke-width="0.7"/>';}
+  }
+  s+='<text y="2" text-anchor="middle" fill="#555" font-size="5" font-family="'+FF+'" style="pointer-events:none" transform="rotate('+(-f)+')">'+lbl+"</text></g>";return s}
+
+function clientSVG(t){
+  var id=t.id,sel=isSel(id),f=t.facing||0;
+  var pw=cfg.clientW*PX,ph=(cfg.clientD/12)*PX;
+  var stk=sel?"#0066cc":"#1a5276",sw=sel?2.5:1.5;
+  var s='<g transform="translate('+t.x+','+t.y+') rotate('+f+')" data-d="'+id+'" data-tp="table" style="cursor:grab">';
+  s+='<rect x="'+(-pw/2)+'" y="'+(-ph/2)+'" width="'+pw+'" height="'+ph+'" rx="2" fill="#d6eaf8" stroke="'+stk+'" stroke-width="'+sw+'" stroke-dasharray="6 3"/>';
+  s+='<text x="0" y="0" text-anchor="middle" dominant-baseline="middle" fill="#1a5276" font-size="7" font-weight="800" font-family="'+FF+'" style="pointer-events:none" transform="rotate('+(-f)+')">CLIENT TABLE</text>';
+  s+='<text x="0" y="10" text-anchor="middle" dominant-baseline="middle" fill="#2980b9" font-size="5" font-family="'+FF+'" style="pointer-events:none" transform="rotate('+(-f)+')">'+cfg.clientW+"' x "+(cfg.clientD/12).toFixed(1)+"&#39;</text>";
+  s+='</g>';return s;
+}
+function tblSVG(t,isCl){var id=t.id,sel=isSel(id),lbl=isCl?"CLIENT":t.label,f=t.facing||0,cR=(cfg.chairSizeIn/2/12)*PX;
+  if(isCl)return clientSVG(t);
+  if(cfg.tableShape==="crescent")return crescSVG(t.x,t.y,cfg.tableDiam,cfg.chairsPerTable,cR,lbl,isCl,sel,id,f);
+  if(cfg.tableShape==="round")return roundSVG(t.x,t.y,cfg.tableDiam,cfg.chairsPerTable,cR,lbl,isCl,sel,id,f);
+  return rectTSVG(t.x,t.y,cfg.rectTableW*12,cfg.rectTableD,lbl,sel,id,f)}
+
+function scrSVG(sc,i){var sw=cfg.screenW*PX,sh=8,sel=isSel(sc.id),rot=sc.rot||0;
+  var stk=sel?"#0066cc":"#444",sww=sel?2.5:1;
+  var s='<g transform="translate('+sc.x+","+sc.y+") rotate("+rot+')" data-d="'+sc.id+'" data-tp="screen" style="cursor:grab">';
+  s+='<rect x="'+(-sw/2)+'" y="'+(-sh/2)+'" width="'+sw+'" height="'+sh+'" rx="1" fill="#ddd" stroke="'+stk+'" stroke-width="'+sww+'"/>';
+  s+='<circle cx="'+(-sw/2+4)+'" cy="0" r="1.5" fill="#999"/><circle cx="'+(sw/2-4)+'" cy="0" r="1.5" fill="#999"/>';
+  s+='<text x="0" y="'+(sh/2+11)+'" text-anchor="middle" fill="#333" font-size="8" font-weight="600" font-family="'+FF+'" style="pointer-events:none">SCREEN '+(i+1)+" ("+cfg.screenW+"'x"+cfg.screenH+"')</text></g>";return s}
+
+function elemSVG(el){var sel=isSel(el.id);var stk=sel?"#0066cc":el.color,sw=sel?2.5:1,rot=el.rot||0;
+  var s='<g data-d="'+el.id+'" data-tp="elem" style="cursor:grab">';
+  if(el.isMounted){
+    var mw2=el.w,mh2=el.h;
+    s+='<g transform="translate('+el.x+','+el.y+') rotate('+(rot||0)+')">';
+    if(el.mountType==="truss"){
+      s+='<rect x="'+(-mw2/2-4)+'" y="-3" width="'+(mw2+8)+'" height="6" rx="1" fill="#bbb" stroke="#777" stroke-width="0.6"/>';
+      s+='<line x1="'+(-mw2/2)+'" y1="-3" x2="'+(-mw2/2)+'" y2="-8" stroke="#777" stroke-width="1.5"/>';
+      s+='<line x1="'+(mw2/2)+'" y1="-3" x2="'+(mw2/2)+'" y2="-8" stroke="#777" stroke-width="1.5"/>';
+      s+='<line x1="'+(-mw2/2)+'" y1="-8" x2="'+(mw2/2)+'" y2="-8" stroke="#777" stroke-width="2"/>';
+    }else{
+      s+='<line x1="0" y1="-12" x2="0" y2="-3" stroke="#8d6e63" stroke-width="1.5" stroke-dasharray="3 2"/>';
+      s+='<rect x="'+(-mw2/2-2)+'" y="-3" width="'+(mw2+4)+'" height="5" rx="1" fill="#d7ccc8" stroke="#8d6e63" stroke-width="0.6"/>';
+    }
+    s+='<rect x="'+(-mw2/2)+'" y="2" width="'+mw2+'" height="'+mh2+'" rx="2" fill="#263238" stroke="'+stk+'" stroke-width="'+sw+'"/>';
+    s+='<text x="0" y="'+(2+mh2/2+1)+'" text-anchor="middle" dominant-baseline="middle" fill="#4dd0e1" font-size="7" font-weight="700" font-family="'+FF+'">'+(el.monSize||"")+'" '+(el.mountType==="truss"?"TRUSS":"P&D")+'</text>';
+    s+='</g></g>';
+    return s;
+  }else if(el.isDoor){
+    // Architectural door with swing arc
+    var dw=(el.doorW||36)/12*PX; // door width in SVG units
+    s+='<g transform="translate('+el.x+','+el.y+') rotate('+(rot||0)+')">';
+    if(el.isRoll){
+      // Roll-up door: dashed opening with zigzag
+      s+='<rect x="'+(-dw/2)+'" y="-3" width="'+dw+'" height="6" fill="none" stroke="'+stk+'" stroke-width="'+sw+'" stroke-dasharray="4 2"/>';
+      s+='<line x1="'+(-dw/2)+'" y1="0" x2="'+(dw/2)+'" y2="0" stroke="'+stk+'" stroke-width="1.2" stroke-dasharray="8 4"/>';
+      s+='<text x="0" y="-8" text-anchor="middle" fill="'+el.color+'" font-size="7.5" font-weight="700" font-family="'+FF+'" style="pointer-events:none">'+el.label+'</text>';
+    }else if(el.isDouble){
+      // Double door: two leaves opening outward
+      var hw=dw/2;
+      // Wall line with opening
+      s+='<line x1="'+(-dw/2-12)+'" y1="0" x2="'+(-dw/2)+'" y2="0" stroke="'+stk+'" stroke-width="2"/>';
+      s+='<line x1="'+(dw/2)+'" y1="0" x2="'+(dw/2+12)+'" y2="0" stroke="'+stk+'" stroke-width="2"/>';
+      // Left door leaf (opens down-left)
+      s+='<line x1="'+(-dw/2)+'" y1="0" x2="'+(-dw/2)+'" y2="'+hw+'" stroke="'+stk+'" stroke-width="1.5"/>';
+      // Left swing arc
+      s+='<path d="M '+(-dw/2)+' '+hw+' A '+hw+' '+hw+' 0 0 1 0 0" fill="none" stroke="'+stk+'" stroke-width="0.6" stroke-dasharray="3 2"/>';
+      // Right door leaf (opens down-right)
+      s+='<line x1="'+(dw/2)+'" y1="0" x2="'+(dw/2)+'" y2="'+hw+'" stroke="'+stk+'" stroke-width="1.5"/>';
+      // Right swing arc
+      s+='<path d="M '+(dw/2)+' '+hw+' A '+hw+' '+hw+' 0 0 0 0 0" fill="none" stroke="'+stk+'" stroke-width="0.6" stroke-dasharray="3 2"/>';
+      s+='<text x="0" y="-6" text-anchor="middle" fill="'+el.color+'" font-size="7.5" font-weight="700" font-family="'+FF+'" style="pointer-events:none">'+el.label+'</text>';
+    }else{
+      // Single door: one leaf with swing arc
+      // Wall line with opening
+      s+='<line x1="'+(-dw/2-12)+'" y1="0" x2="'+(-dw/2)+'" y2="0" stroke="'+stk+'" stroke-width="2"/>';
+      s+='<line x1="'+(dw/2)+'" y1="0" x2="'+(dw/2+12)+'" y2="0" stroke="'+stk+'" stroke-width="2"/>';
+      // Door leaf (hinged on left, opens downward)
+      s+='<line x1="'+(-dw/2)+'" y1="0" x2="'+(-dw/2)+'" y2="'+dw+'" stroke="'+stk+'" stroke-width="1.5"/>';
+      // Swing arc from open position to closed
+      s+='<path d="M '+(-dw/2)+' '+dw+' A '+dw+' '+dw+' 0 0 1 '+(dw/2)+' 0" fill="none" stroke="'+stk+'" stroke-width="0.6" stroke-dasharray="3 2"/>';
+      s+='<text x="0" y="-6" text-anchor="middle" fill="'+el.color+'" font-size="7.5" font-weight="700" font-family="'+FF+'" style="pointer-events:none">'+el.label+'</text>';
+    }
+    s+='</g></g>';
+    return s;
+  }else if(el.isCircle){var r=el.w/2;
+    s+='<circle cx="'+el.x+'" cy="'+el.y+'" r="'+r+'" fill="#f0f0f0" stroke="'+stk+'" stroke-width="'+sw+'"/>';
+    s+='<text x="'+el.x+'" y="'+el.y+'" text-anchor="middle" dominant-baseline="middle" fill="'+el.color+'" font-size="7" font-weight="700" font-family="'+FF+'" style="pointer-events:none">'+el.label+"</text>"}
+  else{var dash=(el.color==="#cc0000"||el.color==="#8d6e63")?"4 2":"none";
+    s+='<g transform="translate('+el.x+','+el.y+') rotate('+(rot||0)+')">';
+    s+='<rect x="'+(-el.w/2)+'" y="'+(-el.h/2)+'" width="'+el.w+'" height="'+el.h+'" rx="2" fill="'+(el.color==="#8d6e63"?"#d7ccc8":"#f5f5f5")+'" stroke="'+stk+'" stroke-width="'+sw+'" stroke-dasharray="'+dash+'"/>';
+    s+='<text x="0" y="1" text-anchor="middle" dominant-baseline="middle" fill="'+el.color+'" font-size="'+(el.w>60?6:5)+'" font-weight="700" font-family="'+FF+'" style="pointer-events:none">'+el.label+"</text></g>"}
+  s+="</g>";return s}
+
+
+function applyViewZoom(){
+  var svg = document.getElementById("cad");
+  if(!svg) return;
+  svg.style.transformOrigin = "top left";
+  svg.style.transform = "scale(" + viewZoom + ")";
+  var w = Number(svg.getAttribute("width")||0);
+  var h = Number(svg.getAttribute("height")||0);
+  svg.style.marginRight = ((w*viewZoom)-w) + "px";
+  svg.style.marginBottom = ((h*viewZoom)-h) + "px";
+}
+
+function fitCadToView(){
+  var wrap = document.getElementById("cvw");
+  var svg = document.getElementById("cad");
+  if(!wrap || !svg) return;
+  var w = Number(svg.getAttribute("width")||0);
+  var h = Number(svg.getAttribute("height")||0);
+  if(!w || !h) return;
+  var availW = Math.max(100, wrap.clientWidth - 40);
+  var availH = Math.max(100, wrap.clientHeight - 40);
+  viewZoom = Math.min(availW / w, availH / h, 1);
+  if(!isFinite(viewZoom) || viewZoom <= 0) viewZoom = 1;
+  applyViewZoom();
+}
+
+function zoomInCad(){
+  viewZoom = Math.min(3, (viewZoom||1) + 0.1);
+  applyViewZoom();
+}
+
+function zoomOutCad(){
+  viewZoom = Math.max(0.2, (viewZoom||1) - 0.1);
+  applyViewZoom();
+}
+
+// ══════ RENDER ══════
+function render(){
+  var m=met(),svg=$("#cad"),w=cfg.stageWall,sr=sRect(),F=FF;
+  svg.setAttribute("width",m.cW);svg.setAttribute("height",m.cH);svg.setAttribute("viewBox","0 0 "+m.cW+" "+m.cH);
+  svg.style.cursor=(mode!=="select")?"crosshair":"default";
+  var tS=tables.length*cfg.chairsPerTable+clientTables.length*cfg.chairsPerTable,tT=tables.length+clientTables.length;
+  var cSpace2=chairSpacing();var csLbl=cSpace2>0?cSpace2.toFixed(1)+'" gap':"";
+  $("#stats").innerHTML='<span style="font-size:13px;font-weight:900;color:#424242">'+currentCadName+'</span> &middot; <span style="font-size:15px;font-weight:900;color:#cc0000">'+tS+' PEOPLE</span> &middot; <b style="color:#333">'+tables.length+'</b> tables &middot; <b style="color:#333">'+cfg.chairsPerTable+'</b>/tbl &middot; <span style="color:#0077b6;font-weight:700">'+csLbl+'</span> &middot; <b style="color:#333">'+elems.length+'</b> elem &middot; <b style="color:#546e7a">'+Math.round(viewZoom*100)+'%</b>';
+  if(mode!=="select"&&mode!=="measure2"){$("#mb").style.display="";
+    var bannerCol=mode==="placeTable"?"#cc0000":mode==="placeElem"?"#2e7d32":"#0066cc";
+    var bannerTxt=mode==="placeTable"?"PLACE TABLE":mode==="placeClient"?"SET CLIENT TABLE":mode==="placeElem"?"CLICK TO PLACE ELEMENT":mode==="measure1"?"CLICK FIRST MEASUREMENT POINT":"";
+    $("#mbt").style.background=bannerCol;$("#mbt").textContent="CLICK ON DRAWING TO "+bannerTxt}
+  else if(mode==="measure2"){$("#mb").style.display="";$("#mbt").style.background="#e65100";$("#mbt").textContent="CLICK SECOND MEASUREMENT POINT"}
+  else{$("#mb").style.display="none"}
+
+  var h='<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#ccc" stroke-width="0.5"/></pattern></defs>';
+  if(pdfBg){
+    if(pdfWallBox && pdfPageW && pdfPageH){
+      var scaleX=m.rW/pdfWallBox.w, scaleY=m.rH/pdfWallBox.h;
+      var imgX=m.rX-(pdfWallBox.x*scaleX), imgY=m.rY-(pdfWallBox.y*scaleY);
+      var imgW=pdfPageW*scaleX, imgH=pdfPageH*scaleY;
+      h+='<image href="'+pdfBg+'" x="'+imgX+'" y="'+imgY+'" width="'+imgW+'" height="'+imgH+'" opacity="0.22" preserveAspectRatio="none"/>';
+      h+='<rect x="'+m.rX+'" y="'+m.rY+'" width="'+m.rW+'" height="'+m.rH+'" fill="none" stroke="#7b1fa2" stroke-width="2" stroke-dasharray="8 4"/>';
+    }else{
+      h+='<image href="'+pdfBg+'" x="'+m.rX+'" y="'+m.rY+'" width="'+m.rW+'" height="'+m.rH+'" opacity="0.2" preserveAspectRatio="xMidYMid meet"/>';
+    }
+  }
+  // Room walls with door openings
+  var wallThick=3.5;
+  // Gather door positions and widths
+  var doors=[];
+  for(var di=0;di<elems.length;di++){
+    if(elems[di].isDoor){
+      var dw3=(elems[di].doorW||36)/12*PX;
+      doors.push({x:elems[di].x,y:elems[di].y,hw:dw3/2+2,rot:elems[di].rot||0});
+    }
+  }
+  // Draw each wall as segments with gaps for doors
+  function drawWall(x1,y1,x2,y2,isHoriz){
+    var segs=[{s:0,e:1}]; // normalized segments
+    var len=isHoriz?(x2-x1):(y2-y1);
+    for(var dj=0;dj<doors.length;dj++){
+      var dr=doors[dj];
+      // Check if door is near this wall
+      var nearWall=false,doorPos=0;
+      if(isHoriz){
+        // Horizontal wall: check Y proximity
+        var wy=y1;
+        if(Math.abs(dr.y-wy)<15){nearWall=true;doorPos=(dr.x-(isHoriz?x1:y1))/len;}
+      }else{
+        // Vertical wall: check X proximity
+        var wx=x1;
+        if(Math.abs(dr.x-wx)<15){nearWall=true;doorPos=(dr.y-y1)/len;}
+      }
+      if(nearWall&&doorPos>-0.1&&doorPos<1.1){
+        var gapHalf=dr.hw/len;
+        var gapStart=doorPos-gapHalf;
+        var gapEnd=doorPos+gapHalf;
+        // Split segments around this gap
+        var newSegs=[];
+        for(var sk=0;sk<segs.length;sk++){
+          var seg=segs[sk];
+          if(gapEnd<=seg.s||gapStart>=seg.e){newSegs.push(seg);continue;}
+          if(gapStart>seg.s)newSegs.push({s:seg.s,e:Math.max(seg.s,gapStart)});
+          if(gapEnd<seg.e)newSegs.push({s:Math.min(seg.e,gapEnd),e:seg.e});
+        }
+        segs=newSegs;
+      }
+    }
+    var wallH="";
+    for(var sl2=0;sl2<segs.length;sl2++){
+      var seg2=segs[sl2];
+      if(seg2.e-seg2.s<0.001)continue;
+      if(isHoriz){
+        wallH+='<line x1="'+(x1+seg2.s*len)+'" y1="'+y1+'" x2="'+(x1+seg2.e*len)+'" y2="'+y2+'" stroke="#111" stroke-width="'+wallThick+'" stroke-linecap="square"/>';
+      }else{
+        wallH+='<line x1="'+x1+'" y1="'+(y1+seg2.s*len)+'" x2="'+x2+'" y2="'+(y1+seg2.e*len)+'" stroke="#111" stroke-width="'+wallThick+'" stroke-linecap="square"/>';
+      }
+    }
+    return wallH;
+  }
+  // Top wall
+  h+=drawWall(m.rX,m.rY,m.rX+m.rW,m.rY,true);
+  // Bottom wall
+  h+=drawWall(m.rX,m.rY+m.rH,m.rX+m.rW,m.rY+m.rH,true);
+  // Left wall
+  h+=drawWall(m.rX,m.rY,m.rX,m.rY+m.rH,false);
+  // Right wall
+  h+=drawWall(m.rX+m.rW,m.rY,m.rX+m.rW,m.rY+m.rH,false);
+  h+='<text x="'+(m.rX+m.rW/2)+'" y="'+(m.rY-8)+'" text-anchor="middle" fill="#444" font-size="9" font-family="'+F+'" font-weight="700">'+cfg.roomW+"' x "+cfg.roomH+"' \u2014 "+cfg.roomName+"</text>";
+
+    function wallDimLine(x1,y1,x2,y2,label){
+    var mx2=(x1+x2)/2,my2=(y1+y2)/2;
+    var len=Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+    if(len<5)return"";
+    var s2='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#0077b6" stroke-width="0.6" stroke-dasharray="3 2"/>';
+    // tick marks
+    var horiz=Math.abs(y2-y1)<2;
+    if(horiz){
+      s2+='<line x1="'+x1+'" y1="'+(y1-3)+'" x2="'+x1+'" y2="'+(y1+3)+'" stroke="#0077b6" stroke-width="0.6"/>';
+      s2+='<line x1="'+x2+'" y1="'+(y2-3)+'" x2="'+x2+'" y2="'+(y2+3)+'" stroke="#0077b6" stroke-width="0.6"/>';
+    }else{
+      s2+='<line x1="'+(x1-3)+'" y1="'+y1+'" x2="'+(x1+3)+'" y2="'+y1+'" stroke="#0077b6" stroke-width="0.6"/>';
+      s2+='<line x1="'+(x2-3)+'" y1="'+y2+'" x2="'+(x2+3)+'" y2="'+y2+'" stroke="#0077b6" stroke-width="0.6"/>';
+    }
+    s2+='<rect x="'+(mx2-24)+'" y="'+(my2-6)+'" width="48" height="12" rx="2" fill="#fff" stroke="#0077b6" stroke-width="0.4"/>';
+    s2+='<text x="'+mx2+'" y="'+(my2+3)+'" text-anchor="middle" fill="#0077b6" font-size="6.5" font-weight="700" font-family="'+F+'">'+label+"</text>";
+    return s2;
+  }
+  function wallDistFor(ox,oy,lbl,srcId){
+    var s3="";
+    var distTop=oy-m.rY, distBot=m.rY+m.rH-oy, distLeft=ox-m.rX, distRight=m.rX+m.rW-ox;
+    var nearWalls=[];
+    nearWalls.push({d:distTop,wall:"top",x1:ox,y1:m.rY,x2:ox,y2:oy});
+    nearWalls.push({d:distBot,wall:"bot",x1:ox,y1:oy,x2:ox,y2:m.rY+m.rH});
+    nearWalls.push({d:distLeft,wall:"left",x1:m.rX,y1:oy,x2:ox,y2:oy});
+    nearWalls.push({d:distRight,wall:"right",x1:ox,y1:oy,x2:m.rX+m.rW,y2:oy});
+    nearWalls.sort(function(a,b){return a.d-b.d});
+    for(var wi=0;wi<2&&wi<nearWalls.length;wi++){
+      var nw=nearWalls[wi];
+      if(nw.d>8){s3+=wallDimLine(nw.x1,nw.y1,nw.x2,nw.y2,(nw.d/PX).toFixed(0)+"'");}
+    }
+    // Distance to stage front
+    if(cfg.showStage){
+      var sf4=sFront();
+      var stgDist=Math.sqrt((ox-sf4.x)*(ox-sf4.x)+(oy-sf4.y)*(oy-sf4.y));
+      if(stgDist>20){s3+=wallDimLine(ox,oy,sf4.x,sf4.y,(stgDist/PX).toFixed(0)+"'");}
+    }
+    // Distance to nearby elements, screens, backdrop, pipe
+    var neighbors=[];
+    for(var ni=0;ni<elems.length;ni++){
+      if(srcId&&elems[ni].id===srcId)continue;
+      neighbors.push({x:elems[ni].x,y:elems[ni].y,lbl:elems[ni].label});
+    }
+    for(var ns=0;ns<screens.length;ns++){
+      neighbors.push({x:screens[ns].x,y:screens[ns].y,lbl:"SCR"+(ns+1)});
+    }
+    if(cfg.showBackdrop){neighbors.push({x:backdrop.x,y:backdrop.y,lbl:"BACKDROP"});}
+    if(cfg.showPipes){neighbors.push({x:pipeTruss.x,y:pipeTruss.y,lbl:"PIPE"});}
+    // Find nearest 2 neighbors
+    neighbors.sort(function(a,b){
+      var da=Math.sqrt((a.x-ox)*(a.x-ox)+(a.y-oy)*(a.y-oy));
+      var db=Math.sqrt((b.x-ox)*(b.x-ox)+(b.y-oy)*(b.y-oy));
+      return da-db;
+    });
+    for(var nj=0;nj<Math.min(2,neighbors.length);nj++){
+      var nb=neighbors[nj];
+      var nd=Math.sqrt((nb.x-ox)*(nb.x-ox)+(nb.y-oy)*(nb.y-oy));
+      if(nd>8&&nd<400){
+        s3+=wallDimLine(ox,oy,nb.x,nb.y,(nd/PX).toFixed(1)+"'");
+      }
+    }
+    return s3;
+  }
+
+
+  if(cfg.showStage){
+    h+='<rect x="'+sr.x+'" y="'+sr.y+'" width="'+sr.w+'" height="'+sr.h+'" fill="#f5f5f5" stroke="#111" stroke-width="1.8"/><rect x="'+sr.x+'" y="'+sr.y+'" width="'+sr.w+'" height="'+sr.h+'" fill="url(#hatch)"/>';
+    h+='<text x="'+(sr.x+sr.w/2)+'" y="'+(sr.y+sr.h/2-5)+'" text-anchor="middle" fill="#111" font-size="10" font-weight="800" font-family="'+F+'">'+cfg.stageW+"' x "+cfg.stageD+"' @"+cfg.stageH+'"</text>';
+    h+='<text x="'+(sr.x+sr.w/2)+'" y="'+(sr.y+sr.h/2+8)+'" text-anchor="middle" fill="#333" font-size="8" font-family="'+F+'">Main Stage</text>';
+    if(cfg.showDims&&(w==="top"||w==="bottom")){var dy=w==="top"?sr.y-14:sr.y+sr.h+14;
+      h+='<line x1="'+sr.x+'" y1="'+dy+'" x2="'+(sr.x+sr.w)+'" y2="'+dy+'" stroke="#cc0000" stroke-width="0.8"/>';
+      h+='<line x1="'+sr.x+'" y1="'+(dy-4)+'" x2="'+sr.x+'" y2="'+(dy+4)+'" stroke="#cc0000" stroke-width="0.8"/><line x1="'+(sr.x+sr.w)+'" y1="'+(dy-4)+'" x2="'+(sr.x+sr.w)+'" y2="'+(dy+4)+'" stroke="#cc0000" stroke-width="0.8"/>';
+      h+='<rect x="'+(sr.x+sr.w/2-26)+'" y="'+(dy-7)+'" width="52" height="14" fill="#fff"/>';
+      h+='<text x="'+(sr.x+sr.w/2)+'" y="'+(dy+3)+'" text-anchor="middle" fill="#cc0000" font-size="8" font-weight="700" font-family="'+F+'">'+cfg.stageW+"'-0\"</text>"}
+    if(cfg.stageOffset>0){
+      var oX1,oY1,oX2,oY2,oTx,oTy;
+      if(w==="top"){oX1=sr.x+sr.w+10;oY1=m.rY;oX2=oX1;oY2=sr.y;oTx=oX1+14;oTy=(oY1+oY2)/2}
+      else if(w==="bottom"){oX1=sr.x+sr.w+10;oY1=sr.y+sr.h;oX2=oX1;oY2=m.rY+m.rH;oTx=oX1+14;oTy=(oY1+oY2)/2}
+      else if(w==="left"){oX1=m.rX;oY1=sr.y-10;oX2=sr.x;oY2=oY1;oTx=(oX1+oX2)/2;oTy=oY1-8}
+      else{oX1=sr.x+sr.w;oY1=sr.y-10;oX2=m.rX+m.rW;oY2=oY1;oTx=(oX1+oX2)/2;oTy=oY1-8}
+      h+='<line x1="'+oX1+'" y1="'+oY1+'" x2="'+oX2+'" y2="'+oY2+'" stroke="#cc0000" stroke-width="0.6" stroke-dasharray="3 2"/>';
+      h+='<line x1="'+(oX1-(w==="top"||w==="bottom"?0:4))+'" y1="'+(oY1-(w==="top"||w==="bottom"?4:0))+'" x2="'+(oX1+(w==="top"||w==="bottom"?0:4))+'" y2="'+(oY1+(w==="top"||w==="bottom"?4:0))+'" stroke="#cc0000" stroke-width="0.6"/>';
+      h+='<line x1="'+(oX2-(w==="top"||w==="bottom"?0:4))+'" y1="'+(oY2-(w==="top"||w==="bottom"?4:0))+'" x2="'+(oX2+(w==="top"||w==="bottom"?0:4))+'" y2="'+(oY2+(w==="top"||w==="bottom"?4:0))+'" stroke="#cc0000" stroke-width="0.6"/>';
+      h+='<text x="'+oTx+'" y="'+oTy+'" text-anchor="middle" fill="#cc0000" font-size="7" font-weight="700" font-family="'+F+'">'+cfg.stageOffset+"'-0\"</text>"}
+    if(cfg.showBackdrop){var bw2=cfg.backdropW*PX,isL=cfg.backdropType==="led",bsel=isSel("backdrop");
+      h+='<g data-d="backdrop" data-tp="stage" style="cursor:grab"><rect x="'+(backdrop.x-bw2/2)+'" y="'+(backdrop.y-3)+'" width="'+bw2+'" height="6" fill="'+(isL?"#1a237e":"#e0e0e0")+'" stroke="'+(bsel?"#0066cc":isL?"#536dfe":"#888")+'" stroke-width="'+(bsel?2.5:1)+'"/>';
+      h+='<text x="'+backdrop.x+'" y="'+(backdrop.y-8)+'" text-anchor="middle" fill="'+(isL?"#536dfe":"#666")+'" font-size="8" font-family="'+F+'" style="pointer-events:none">'+cfg.backdropW+"'w x "+cfg.backdropH+"'h "+(isL?"LED Wall":"Fabric Backdrop")+"</text></g>"}
+    if(cfg.showPipes){var psel=isSel("pipeTruss"),ptw=sr.w+40;
+      h+='<g data-d="pipeTruss" data-tp="stage" style="cursor:grab"><rect x="'+(pipeTruss.x-ptw/2)+'" y="'+(pipeTruss.y-2)+'" width="'+ptw+'" height="4" fill="#e0e0e0" stroke="'+(psel?"#0066cc":"#999")+'" stroke-width="'+(psel?2.5:0.6)+'"/>';
+      h+='<text x="'+pipeTruss.x+'" y="'+(pipeTruss.y-6)+'" text-anchor="middle" fill="#888" font-size="7" font-family="'+F+'" style="pointer-events:none">Christie Lites 1.5" Pipe 4ft</text></g>'}
+  }
+  // Backdrop and pipe wall distances
+  if(cfg.showBackdrop&&cfg.showDims){
+    var bdTop=backdrop.y-m.rY, bdBot=m.rY+m.rH-backdrop.y, bdLeft=backdrop.x-m.rX, bdRight=m.rX+m.rW-backdrop.x;
+    var bdNearest=[{d:bdTop,x1:backdrop.x,y1:m.rY,x2:backdrop.x,y2:backdrop.y},{d:bdBot,x1:backdrop.x,y1:backdrop.y,x2:backdrop.x,y2:m.rY+m.rH},{d:bdLeft,x1:m.rX,y1:backdrop.y,x2:backdrop.x,y2:backdrop.y},{d:bdRight,x1:backdrop.x,y1:backdrop.y,x2:m.rX+m.rW,y2:backdrop.y}];
+    bdNearest.sort(function(a,b){return a.d-b.d});
+    if(bdNearest[0].d>5)h+=wallDimLine(bdNearest[0].x1,bdNearest[0].y1,bdNearest[0].x2,bdNearest[0].y2,(bdNearest[0].d/PX).toFixed(1)+"'");
+    // Show backdrop width
+    var bdw2=cfg.backdropW*PX;
+    h+=wallDimLine(backdrop.x-bdw2/2,backdrop.y+12,backdrop.x+bdw2/2,backdrop.y+12,cfg.backdropW+"'");
+  }
+  if(cfg.showPipes&&cfg.showDims){
+    var ptTop=pipeTruss.y-m.rY, ptBot=m.rY+m.rH-pipeTruss.y, ptLeft=pipeTruss.x-m.rX, ptRight=m.rX+m.rW-pipeTruss.x;
+    var ptNearest=[{d:ptTop,x1:pipeTruss.x,y1:m.rY,x2:pipeTruss.x,y2:pipeTruss.y},{d:ptBot,x1:pipeTruss.x,y1:pipeTruss.y,x2:pipeTruss.x,y2:m.rY+m.rH},{d:ptLeft,x1:m.rX,y1:pipeTruss.y,x2:pipeTruss.x,y2:pipeTruss.y},{d:ptRight,x1:pipeTruss.x,y1:pipeTruss.y,x2:m.rX+m.rW,y2:pipeTruss.y}];
+    ptNearest.sort(function(a,b){return a.d-b.d});
+    if(ptNearest[0].d>5)h+=wallDimLine(ptNearest[0].x1,ptNearest[0].y1,ptNearest[0].x2,ptNearest[0].y2,(ptNearest[0].d/PX).toFixed(1)+"'");
+    if(ptNearest[1].d>5)h+=wallDimLine(ptNearest[1].x1,ptNearest[1].y1,ptNearest[1].x2,ptNearest[1].y2,(ptNearest[1].d/PX).toFixed(1)+"'");
+    // Show pipe width
+    var ptw2=sRect().w+40;
+    h+=wallDimLine(pipeTruss.x-ptw2/2,pipeTruss.y+10,pipeTruss.x+ptw2/2,pipeTruss.y+10,(ptw2/PX).toFixed(0)+"'");
+  }
+
+  if(cfg.showScreens){
+    for(var si=0;si<screens.length;si++)h+=scrSVG(screens[si],si);
+    // Auto screen measurements: wall distances + stage distance
+    if(cfg.showDims){
+      var sf6=sFront();
+      for(var smi=0;smi<screens.length;smi++){
+        var sx=screens[smi].x,sy=screens[smi].y;
+        // Distance to nearest left/right walls
+        var dLeft=sx-m.rX, dRight=m.rX+m.rW-sx;
+        var dTop=sy-m.rY, dBot=m.rY+m.rH-sy;
+        // Left wall
+        if(dLeft>10)h+=wallDimLine(m.rX,sy,sx,sy,(dLeft/PX).toFixed(1)+"'");
+        // Right wall
+        if(dRight>10)h+=wallDimLine(sx,sy,m.rX+m.rW,sy,(dRight/PX).toFixed(1)+"'");
+        // Nearest top/bottom wall
+        if(dTop<dBot&&dTop>10){h+=wallDimLine(sx,m.rY,sx,sy,(dTop/PX).toFixed(1)+"'");}
+        else if(dBot>10){h+=wallDimLine(sx,sy,sx,m.rY+m.rH,(dBot/PX).toFixed(1)+"'");}
+        // Distance to stage front (projection distance)
+        var stgD=Math.sqrt((sx-sf6.x)*(sx-sf6.x)+(sy-sf6.y)*(sy-sf6.y));
+        if(stgD>10){
+          var smx=(sx+sf6.x)/2,smy=(sy+sf6.y)/2;
+          h+='<line x1="'+sx+'" y1="'+sy+'" x2="'+sf6.x+'" y2="'+sf6.y+'" stroke="#e65100" stroke-width="0.8" stroke-dasharray="6 3"/>';
+          h+='<rect x="'+(smx-28)+'" y="'+(smy-7)+'" width="56" height="14" rx="2" fill="#fff3e0" stroke="#e65100" stroke-width="0.6"/>';
+          h+='<text x="'+smx+'" y="'+(smy+3)+'" text-anchor="middle" fill="#e65100" font-size="7" font-weight="800" font-family="'+F+'">PD='+(stgD/PX).toFixed(0)+"&#39;</text>";
+        }
+      }
+    }
+  }
+  if(cfg.showRigging){var rc=Math.max(3,Math.floor(cfg.roomW/25)),rr=Math.max(2,Math.floor(cfg.roomH/25));for(var ri=1;ri<=rr;ri++)for(var ci=1;ci<=rc;ci++){var rpx=m.rX+(m.rW/(rc+1))*ci,rpy=m.rY+(m.rH/(rr+1))*ri;h+='<g transform="translate('+rpx+","+rpy+')"><circle r="4" fill="none" stroke="#bbb" stroke-width="0.5"/><line x1="-3" y1="0" x2="3" y2="0" stroke="#bbb" stroke-width="0.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="#bbb" stroke-width="0.5"/></g>'}}
+  for(var ei=0;ei<elems.length;ei++)h+=elemSVG(elems[ei]);
+  for(var ti=0;ti<tables.length;ti++)h+=tblSVG(tables[ti],false);
+  for(var cli=0;cli<clientTables.length;cli++)h+=tblSVG(clientTables[cli],true);
+
+  var ms=getMeasurements();
+  if(cfg.showDims)for(var mi=0;mi<ms.length;mi++){var mm=ms[mi],mx=(mm.from.x+mm.to.x)/2,my=(mm.from.y+mm.to.y)/2;
+    h+='<line x1="'+mm.from.x+'" y1="'+mm.from.y+'" x2="'+mm.to.x+'" y2="'+mm.to.y+'" stroke="#cc0000" stroke-width="0.7" stroke-dasharray="5 3"/>';
+    h+='<rect x="'+(mx-28)+'" y="'+(my-8)+'" width="56" height="16" rx="2" fill="#fff" stroke="#cc0000" stroke-width="0.5"/>';
+    h+='<text x="'+mx+'" y="'+(my+3)+'" text-anchor="middle" fill="#cc0000" font-size="7.5" font-weight="800" font-family="'+F+'">'+mm.label+"</text>"}
+
+  if(cfg.roboCam){var rx,ry;if(w==="top"){rx=m.rX+m.rW/2;ry=m.rY+m.rH-22}else if(w==="bottom"){rx=m.rX+m.rW/2;ry=m.rY+22}else if(w==="left"){rx=m.rX+m.rW-22;ry=m.rY+m.rH/2}else{rx=m.rX+22;ry=m.rY+m.rH/2}
+    h+='<rect x="'+(rx-12)+'" y="'+(ry-7)+'" width="24" height="14" rx="3" fill="#f5f5f5" stroke="#7b1fa2" stroke-width="1.5"/><circle cx="'+rx+'" cy="'+ry+'" r="4" fill="#7b1fa2" opacity="0.6"/>';
+    h+='<text x="'+rx+'" y="'+(ry-12)+'" text-anchor="middle" fill="#7b1fa2" font-size="7" font-weight="800" font-family="'+F+'">'+cfg.roboCamH+"'h Robo Cam</text>";
+    var sf3=sFront(),ang=Math.atan2(sf3.y-ry,sf3.x-rx);
+    h+='<line x1="'+rx+'" y1="'+ry+'" x2="'+(rx+Math.cos(ang-.3)*90)+'" y2="'+(ry+Math.sin(ang-.3)*90)+'" stroke="#7b1fa2" stroke-width="0.5" stroke-dasharray="4 3" opacity="0.35"/>';
+    h+='<line x1="'+rx+'" y1="'+ry+'" x2="'+(rx+Math.cos(ang+.3)*90)+'" y2="'+(ry+Math.sin(ang+.3)*90)+'" stroke="#7b1fa2" stroke-width="0.5" stroke-dasharray="4 3" opacity="0.35"/>'}
+
+  if(cfg.showEntrance){var es=cfg.entranceSide,ex,ey,ew,eh,etx,ety,erot=0;
+    if(es==="bottom"){ex=m.rX+m.rW/2-35;ey=m.rY+m.rH-2;ew=70;eh=4;etx=m.rX+m.rW/2;ety=m.rY+m.rH+16}
+    else if(es==="top"){ex=m.rX+m.rW/2-35;ey=m.rY-2;ew=70;eh=4;etx=m.rX+m.rW/2;ety=m.rY-10}
+    else if(es==="left"){ex=m.rX-2;ey=m.rY+m.rH/2-35;ew=4;eh=70;etx=m.rX-16;ety=m.rY+m.rH/2;erot=-90}
+    else{ex=m.rX+m.rW-2;ey=m.rY+m.rH/2-35;ew=4;eh=70;etx=m.rX+m.rW+16;ety=m.rY+m.rH/2;erot=90}
+    h+='<rect x="'+ex+'" y="'+ey+'" width="'+ew+'" height="'+eh+'" fill="#cc0000" opacity="0.25"/>';
+    h+='<text x="'+etx+'" y="'+ety+'" text-anchor="middle" fill="#cc0000" font-size="7" font-weight="800" font-family="'+F+'" '+(erot?'transform="rotate('+erot+","+etx+","+ety+')"':"")+">Attendee Entrance</text>"}
+
+  // ══════ WALL DISTANCE MEASUREMENTS ══════
+  if(cfg.showWallDist){
+    // Screens
+    if(cfg.showScreens){for(var wsi=0;wsi<screens.length;wsi++){h+=wallDistFor(screens[wsi].x,screens[wsi].y,"SCR"+(wsi+1),screens[wsi].id);}}
+    // Drape/production elements with drape types
+    for(var wei=0;wei<elems.length;wei++){
+      var et=elems[wei].type;
+      if(et==="DRAPE_8"||et==="DRAPE_3"||et==="PIPE_DRAPE"||et==="CONF_MON"||et==="CONF_MON_SM"||et==="FOLDBACK"||et==="TELEPROMPTER"){
+        h+=wallDistFor(elems[wei].x,elems[wei].y,elems[wei].label,elems[wei].id);
+      }
+    }
+  }
+  if(cfg.showWallDistAll){
+    // All tables
+    for(var wti=0;wti<tables.length;wti++){h+=wallDistFor(tables[wti].x,tables[wti].y,tables[wti].label,tables[wti].id);}
+    for(var wci=0;wci<clientTables.length;wci++){h+=wallDistFor(clientTables[wci].x,clientTables[wci].y,"CLI",clientTables[wci].id);}
+    // All elements
+    for(var wai=0;wai<elems.length;wai++){
+      var et2=elems[wai].type;
+      if(!(et2==="DRAPE_8"||et2==="DRAPE_3"||et2==="PIPE_DRAPE"||et2==="CONF_MON"||et2==="CONF_MON_SM"||et2==="FOLDBACK"||et2==="TELEPROMPTER")){
+        h+=wallDistFor(elems[wai].x,elems[wai].y,elems[wai].label,elems[wai].id);
+      }
+    }
+    // Screens if not already shown
+    if(!cfg.showWallDist){
+      if(cfg.showScreens){for(var ws2=0;ws2<screens.length;ws2++){h+=wallDistFor(screens[ws2].x,screens[ws2].y,"SCR"+(ws2+1),screens[ws2].id);}}
+    }
+  }
+
+  // Persistent measurement lines
+  for(var pmi=0;pmi<measuredLines.length;pmi++){
+    var mla=measuredLines[pmi].a, mlb=measuredLines[pmi].b;
+    var mdp=Math.sqrt((mlb.x-mla.x)*(mlb.x-mla.x)+(mlb.y-mla.y)*(mlb.y-mla.y));
+    var mmxp=(mla.x+mlb.x)/2, mmyp=(mla.y+mlb.y)/2;
+    var mLabelp=(mdp/PX).toFixed(1)+"'";
+    h+='<line x1="'+mla.x+'" y1="'+mla.y+'" x2="'+mlb.x+'" y2="'+mlb.y+'" stroke="#e65100" stroke-width="1.5" stroke-dasharray="6 3"/>';
+    h+='<circle cx="'+mla.x+'" cy="'+mla.y+'" r="4" fill="#e65100" opacity="0.7"/>';
+    h+='<circle cx="'+mlb.x+'" cy="'+mlb.y+'" r="4" fill="#e65100" opacity="0.7"/>';
+    h+='<rect x="'+(mmxp-30)+'" y="'+(mmyp-10)+'" width="60" height="20" rx="3" fill="#fff3e0" stroke="#e65100" stroke-width="1"/>';
+    h+='<text x="'+mmxp+'" y="'+(mmyp+4)+'" text-anchor="middle" fill="#e65100" font-size="10" font-weight="900" font-family="'+F+'">'+mLabelp+'</text>';
+  }
+  if(measurePt1&&mode==="measure2"){
+    h+='<circle cx="'+measurePt1.x+'" cy="'+measurePt1.y+'" r="5" fill="none" stroke="#e65100" stroke-width="2"/>';
+    h+='<circle cx="'+measurePt1.x+'" cy="'+measurePt1.y+'" r="2" fill="#e65100"/>';
+  }
+
+  // People count overlay (top-right of room)
+  var pcX=m.rX+m.rW-8,pcY=m.rY+12;
+  h+='<rect x="'+(pcX-90)+'" y="'+(pcY-8)+'" width="90" height="34" rx="3" fill="#fff" stroke="#cc0000" stroke-width="1.2" opacity="0.95"/>';
+  h+='<text x="'+(pcX-45)+'" y="'+(pcY+4)+'" text-anchor="middle" fill="#cc0000" font-size="11" font-weight="900" font-family="'+F+'">'+tS+' PEOPLE</text>';
+  h+='<text x="'+(pcX-45)+'" y="'+(pcY+18)+'" text-anchor="middle" fill="#555" font-size="7" font-family="'+F+'">'+tables.length+' tbls \u00B7 '+cfg.chairsPerTable+'/tbl \u00B7 '+chairSpacing().toFixed(1)+'" gap</text>';
+
+  // Title block
+  var bX=m.rX,bY=m.rY+m.rH+PAD-12,bW=m.rW;
+  h+='<rect x="'+bX+'" y="'+bY+'" width="'+bW+'" height="'+TH+'" fill="#fffde7" stroke="#222" stroke-width="2"/>';
+  [.36,.64,.82].forEach(function(f2){h+='<line x1="'+(bX+bW*f2)+'" y1="'+bY+'" x2="'+(bX+bW*f2)+'" y2="'+(bY+TH)+'" stroke="#222" stroke-width="0.8"/>'});
+  var c1=[["CAD NAME:",currentCadName,13,800],["SESSION:",cfg.sessionName,24,800],["START DATE:",cfg.startDate,35,400],["END DATE:",cfg.endDate,46,400]];
+  for(var i3=0;i3<c1.length;i3++){h+='<text x="'+(bX+6)+'" y="'+(bY+c1[i3][2])+'" fill="#777" font-size="6" font-family="'+F+'">'+c1[i3][0]+'</text><text x="'+(bX+62)+'" y="'+(bY+c1[i3][2])+'" fill="#111" font-size="7" font-weight="'+c1[i3][3]+'" font-family="'+F+'">'+c1[i3][1]+"</text>"}
+  h+='<text x="'+(bX+6)+'" y="'+(bY+60)+'" fill="#777" font-size="6" font-family="'+F+'">SEATING:</text>';
+  var sl=cfg.tableShape==="crescent"?"Crescents":cfg.tableShape==="round"?"Rounds":"Tables";var cTxt=clientTables.length?(" + "+clientTables.length+" Client "+cfg.clientW+"'x"+(cfg.clientD/12).toFixed(0)+"'"):"";
+  h+='<text x="'+(bX+50)+'" y="'+(bY+60)+'" fill="#111" font-size="6" font-family="'+F+'">('+tS+") ppl - ("+tT+") "+cfg.tableDiam+'" '+sl+" of "+cfg.chairsPerTable+cTxt+"</text>";
+  var c2=[["VENUE:",cfg.venueName,13,800],["LOCATION:",cfg.location,24,400],["ROOM:",cfg.roomName,35,800],["DRAWN BY:",cfg.drawnBy,50,400]];
+  for(var i4=0;i4<c2.length;i4++){h+='<text x="'+(bX+bW*.36+6)+'" y="'+(bY+c2[i4][2])+'" fill="#777" font-size="6" font-family="'+F+'">'+c2[i4][0]+'</text><text x="'+(bX+bW*.36+54)+'" y="'+(bY+c2[i4][2])+'" fill="#111" font-size="7" font-weight="'+c2[i4][3]+'" font-family="'+F+'">'+c2[i4][1]+"</text>"}
+  h+='<text x="'+(bX+bW*.64+6)+'" y="'+(bY+12)+'" fill="#777" font-size="6" font-weight="700" font-family="'+F+'">DIMENSIONS:</text><text x="'+(bX+bW*.64+6)+'" y="'+(bY+24)+'" fill="#111" font-size="7" font-family="'+F+'">'+cfg.roomW+"' x "+cfg.roomH+"&#39;</text>";
+  h+='<text x="'+(bX+bW*.64+6)+'" y="'+(bY+35)+'" fill="#111" font-size="7" font-family="'+F+'">'+cfg.stageW+"' x "+cfg.stageD+"' @"+cfg.stageH+'"</text>';
+  h+='<text x="'+(bX+bW*.64+6)+'" y="'+(bY+48)+'" fill="#777" font-size="6" font-weight="700" font-family="'+F+'">NOTES:</text><text x="'+(bX+bW*.64+6)+'" y="'+(bY+60)+'" fill="#111" font-size="6" font-family="'+F+'">'+(cfg.notes||"ENTER NOTES HERE")+"</text>";
+  h+='<text x="'+(bX+bW*.82+6)+'" y="'+(bY+14)+'" fill="#777" font-size="7" font-weight="700" font-family="'+F+'">SHEET #</text><text x="'+(bX+bW*.91)+'" y="'+(bY+30)+'" text-anchor="middle" fill="#111" font-size="16" font-weight="900" font-family="'+F+'">'+cfg.sheetNum+"</text>";
+  h+='<line x1="'+(bX+bW*.82)+'" y1="'+(bY+36)+'" x2="'+(bX+bW)+'" y2="'+(bY+36)+'" stroke="#222" stroke-width="0.6"/>';
+  h+='<text x="'+(bX+bW*.82+6)+'" y="'+(bY+48)+'" fill="#777" font-size="7" font-weight="700" font-family="'+F+'">VERSION #</text><rect x="'+(bX+bW*.82+2)+'" y="'+(bY+50)+'" width="'+(bW*.18-4)+'" height="16" fill="#ffe082" stroke="#f9a825" stroke-width="0.8" rx="2"/>';
+  h+='<text x="'+(bX+bW*.91)+'" y="'+(bY+62)+'" text-anchor="middle" fill="#cc0000" font-size="14" font-weight="900" font-family="'+F+'">'+cfg.versionNum+"</text>";
+  svg.innerHTML=h;
+  var mh="";if(ms.length){mh='<div class="shd" style="margin-top:10px">MEASUREMENTS</div>';for(var mi3=0;mi3<ms.length;mi3++)mh+='<div class="mr"><span>Distance</span><span class="mv">'+ms[mi3].label+"</span></div>"}
+  $("#mrd").innerHTML=mh;renderPanel();applyViewZoom()
+}
+
+// ══════ PANEL ══════
+function renderPanel(){
+  var th="";["event","stage","tables","prod","tech"].forEach(function(id){th+='<button class="'+(tab===id?"on":"")+'" onclick="tab=\''+id+"';render()\">"+id.toUpperCase()+"</button>"});
+  $("#ptabs").innerHTML=th;
+  var p="";
+  function fld(l,k,tp,w){tp=tp||"number";w=w||70;var v=cfg[k],al=tp==="number"?"right":"left";
+    return'<div class="fr"><label>'+l+'</label><input type="'+tp+'" value="'+v+'" style="width:'+w+'px;text-align:'+al+'" onchange="cfg.'+k+"="+(tp==="number"?"Number(this.value)":"this.value")+';render()"></div>'}
+  function btn(t,on,oc,ac){var bg=on?(ac||"#333"):"#f0f0f0",co=on?"#fff":"#333",bd=on?(ac||"#333"):"#bbb";
+    return'<button class="btn'+(on?" on":"")+'" style="background:'+bg+";color:"+co+";border-color:"+bd+'" onclick="'+oc+'">'+t+"</button>"}
+  function sld(l,k,mn,mx,st,su){return'<div class="srow"><label>'+l+'</label><input type="range" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+cfg[k]+'" oninput="cfg.'+k+'=Number(this.value);render()"><span class="sv">'+cfg[k]+su+"</span></div>"}
+
+  if(tab==="event"){
+    p+='<div class="shd">EVENT INFO</div>';
+    p+=fld("Event Name","eventName","text",120)+fld("Session","sessionName","text",120)+fld("Venue","venueName","text",120);
+    p+=fld("Location","location","text",120)+fld("Room","roomName","text",120);
+    p+=fld("Start Date","startDate","date",120)+fld("End Date","endDate","date",120);
+    p+='<div class="hint">Upload PDF, then use DETECT WALLS to align the CAD walls to the room.</div>';
+    p+=fld("Drawn By","drawnBy","text",120)+fld("Sheet #","sheetNum","text",70)+fld("Version #","versionNum","text",70);
+    p+='<div class="shd">ROOM</div>'+fld("Width (ft)","roomW")+fld("Depth (ft)","roomH")+fld("Notes","notes","text",120)
+  }
+
+  if(tab==="stage"){
+    p+='<div class="shd">STAGE WALL</div><div style="display:flex;gap:4px;margin-bottom:8px">';
+    ["top","bottom","left","right"].forEach(function(s){p+=btn(s.toUpperCase(),cfg.stageWall===s,"cfg.stageWall='"+s+"';initScreens();resetStageItems();render()")});
+    p+='</div><div style="display:flex;gap:4px;margin-bottom:8px">'+btn("SHOW STAGE",cfg.showStage,"cfg.showStage=!cfg.showStage;render()")+"</div>";
+    p+='<div class="shd">DIMENSIONS</div>'+fld("Width (ft)","stageW")+fld("Depth (ft)","stageD")+fld('Height (")',"stageH")+fld("Offset from wall (ft)","stageOffset");
+    p+='<div style="display:flex;gap:4px;margin-top:10px;margin-bottom:4px">'+btn("SHOW SCREENS",cfg.showScreens,"cfg.showScreens=!cfg.showScreens;render()")+'</div>';
+    p+='<div class="shd">SCREENS</div>'+fld("Width (ft)","screenW")+fld("Height (ft)","screenH");
+    p+='<div class="fr"><label>Count</label><input type="number" value="'+cfg.screenCount+'" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="cfg.screenCount=Number(this.value);initScreens();render()"></div>';
+    p+='<div class="hint">Drag screens on drawing. Select + rotate below.</div>';
+    p+='<div style="display:flex;gap:4px;margin-top:4px;margin-bottom:4px">'+btn("SCREENS ON STAGE",false,"snapScreensCenter()","#0077b6")+btn("SCREENS L/R OF STAGE",false,"snapScreensStageWallCenter()","#0077b6")+'</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("SNAP BACKDROP",false,"snapBackdropCenter()","#0077b6")+'</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("SNAP PIPE CENTER",false,"snapPipeCenter()","#0077b6")+'</div>';
+    // Screen rotation if screen selected
+    var scrSel=selection.find(function(s){return s.tp==="screen"});
+    if(scrSel){var scObj=getObj(scrSel.id,"screen");if(scObj){
+      p+='<div class="fr" style="margin:6px 0 4px"><label>Screen rotation \u00B0</label><input type="number" value="'+(scObj.rot||0)+'" step="1" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="var sc=screens.find(function(s2){return s2.id===\''+scrSel.id+'\'});if(sc){sc.rot=Number(this.value)%360}render()"></div>';
+      p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("\u21BA 1\u00B0",false,"rotateSelection(-1)")+btn("\u21BB 1\u00B0",false,"rotateSelection(1)")+btn("\u21BA 5\u00B0",false,"rotateSelection(-5)")+btn("\u21BB 5\u00B0",false,"rotateSelection(5)")+'</div>';
+      p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("\u21BA 15\u00B0",false,"rotateSelection(-15)")+btn("\u21BB 15\u00B0",false,"rotateSelection(15)")+btn("\u21BA 45\u00B0",false,"rotateSelection(-45)")+btn("\u21BB 45\u00B0",false,"rotateSelection(45)")+'</div>';
+      p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("\u21BA 90\u00B0",false,"rotateSelection(-90)")+btn("\u21BB 90\u00B0",false,"rotateSelection(90)")+btn("FLIP",false,"rotateSelection(180)")+"</div>"}}
+    p+='<div class="shd">BACKDROP</div>'+fld("Width (ft)","backdropW")+fld("Height (ft)","backdropH");
+    p+='<div style="display:flex;gap:4px;margin-top:6px">'+btn("FABRIC",cfg.backdropType==="fabric","cfg.backdropType='fabric';render()")+btn("LED WALL",cfg.backdropType==="led","cfg.backdropType='led';render()","#1a237e")+"</div>";
+    p+='<div style="display:flex;gap:4px;margin-top:6px">'+btn("BACKDROP",cfg.showBackdrop,"cfg.showBackdrop=!cfg.showBackdrop;render()")+btn("PIPES",cfg.showPipes,"cfg.showPipes=!cfg.showPipes;render()")+"</div>";
+    p+='<div class="shd">CONFIDENCE MONITORS</div>';
+    p+='<div class="hint">Quick place two confidence monitors centered in front of the stage.</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:8px">'+btn("2 CONF MON",false,"addConfidencePair(\'CONF_MON\')","#00838f")+btn("2 CONF MON SM",false,"addConfidencePair(\'CONF_MON_SM\')","#00838f")+'</div>';
+    p+='<div class="shd">PIPE & DRAPE</div>';
+    p+='<div class="hint">Auto place pipe & drape from wall to screen, or from screen to stage.</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:8px">'+btn("P&D WALL→SCREEN",false,"addPipeDrapeWallToScreen()","#8d6e63")+btn("P&D SCREEN→STAGE",false,"addPipeDrapeScreenToStage()","#8d6e63")+'</div>'
+  }
+
+  if(tab==="tables"){
+    p+='<div class="shd">TABLE STYLE</div><div style="display:flex;gap:4px;margin-bottom:8px">';
+    p+=btn("CRESCENT",cfg.tableShape==="crescent","cfg.tableShape='crescent';render()")+btn("ROUND",cfg.tableShape==="round","cfg.tableShape='round';render()")+btn("RECT",cfg.tableShape==="rect","cfg.tableShape='rect';render()")+"</div>";
+    if(cfg.tableShape!=="rect")p+=fld('Diameter (")',"tableDiam");else p+=fld("Width (ft)","rectTableW")+fld('Depth (")',"rectTableD");
+    p+=fld("Chairs / Table","chairsPerTable");
+    p+=fld("Attendees","attendeeCount");
+    var tablesNeeded = Math.ceil((Math.max(0,Number(cfg.attendeeCount)||0))/Math.max(1,Number(cfg.chairsPerTable)||1));
+    p+='<div style="background:#e8f5e9;padding:6px 10px;border-radius:4px;margin-bottom:8px;border:1px solid #66bb6a;font-size:13px;font-weight:800;color:#2e7d32">Tables needed from attendees: '+tablesNeeded+'</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:8px"><button class="btn" style="background:#2e7d32;color:#fff;border-color:#2e7d32" onclick="autoPlaceByAttendees()">AUTO TABLES FROM ATTENDEES</button></div>';
+    p+=sld("Chair Size (in)","chairSizeIn",12,24,1,' in');
+    p+=sld("Chair Gap (in)","chairGapIn",1,12,0.5,' in');
+    var cSp=chairSpacing();
+    if(cSp>0){
+      p+='<div style="background:'+(cSp<18?"#ffebee":cSp<22?"#fff8e1":"#e8f5e9")+';padding:6px 10px;border-radius:4px;margin-bottom:8px;border:1px solid '+(cSp<18?"#ef5350":cSp<22?"#ffa726":"#66bb6a")+'">';
+      p+='<span style="font-size:13px;font-weight:800;color:'+(cSp<18?"#c62828":cSp<22?"#e65100":"#2e7d32")+'">'+cSp.toFixed(1)+'" between chairs</span>';
+      p+='<span style="font-size:11px;color:#666;margin-left:8px">'+(cSp<18?"\u26A0 Tight":"OK")+'</span></div>';
+    }
+
+    p+='<div class="shd">GRID LAYOUT</div>';
+    p+='<div class="fr"><label>Columns</label><input type="number" min="0" value="'+cfg.tableCols+'" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="cfg.tableCols=Number(this.value);cfg.tableRows=0;redistributeTables()"></div>';
+    p+='<div class="fr"><label>Rows</label><input type="number" min="0" value="'+cfg.tableRows+'" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="cfg.tableRows=Number(this.value);cfg.tableCols=0;redistributeTables()"></div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:4px">';
+    p+=btn("AUTO (square)",false,"cfg.tableRows=0;cfg.tableCols=0;redistributeTables()");
+    p+='</div>';
+    p+='<div class="shd">CUSTOM LAYOUT BUILDER</div>';
+    p+='<div class="hint">Enter tables per row (e.g. 5,6,6,5 = 4 rows with staggered widths).</div>';
+    p+='<textarea id="layoutInput" rows="3" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial;margin-bottom:6px;resize:vertical" placeholder="Example: 5,6,6,5">'+customLayoutText+'</textarea>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:4px">';
+    p+=btn("\u25B6 APPLY LAYOUT",false,"parseCustomLayout(document.getElementById('layoutInput').value);applyCustomLayout()","#cc0000");
+    p+=btn("PREVIEW",false,"parseCustomLayout(document.getElementById('layoutInput').value);var t=0;customLayout.forEach(function(r){t+=r});alert('Layout: '+customLayout.length+' rows, '+t+' tables total\\n'+customLayout.map(function(r,i){return 'Row '+(i+1)+': '+r+' tables'}).join('\\n'))");
+    p+='</div>';
+    if(customLayout.length>0){
+      p+='<div style="background:#f5f5f5;padding:6px 8px;border-radius:4px;margin-bottom:6px;font-size:12px;color:#444">';
+      var cTotal=0;customLayout.forEach(function(r){cTotal+=r});
+      p+='<b>'+customLayout.length+' rows, '+cTotal+' tables:</b><br>';
+      for(var cli2=0;cli2<customLayout.length;cli2++){p+='Row '+(cli2+1)+': '+customLayout[cli2]+' tables<br>';}
+      p+='</div>';
+    }
+    p+='<div class="hint">Common patterns: 5,6,6,5 (diamond) &middot; 8,8,8,8 (grid) &middot; 4,5,6,5,4 (chevron)</div>';
+    p+='<div class="shd">SPACING</div>'+sld("Gap between","tableSpacing",4,24,1," ft");
+    p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("\u21BB APPLY LAYOUT",false,"redistributeTables()","#cc0000")+"</div>";
+
+    p+='<div class="shd">FACING</div>';
+    // Show rotation controls for any selected table
+    var tblSels=selection.filter(function(s){return s.tp==="table"});
+    if(tblSels.length>0){
+      p+='<div style="font-size:13px;color:#333;margin-bottom:6px;font-weight:700">'+tblSels.length+" table(s) selected</div>";
+      var tblF=0;var fst=selection.filter(function(s){return s.tp==="table"});if(fst.length){var fo=getObj(fst[0].id,"table");if(fo)tblF=fo.facing||0}
+      p+='<div class="fr"><label>Degrees</label><input type="number" value="'+tblF+'" step="1" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="snapshot();selection.forEach(function(s){var o=getObj(s.id,s.tp);if(o&&o.facing!==undefined)o.facing=Number(this.value)%360});render()"></div>';
+      p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("\u21BA 1\u00B0",false,"rotateSelection(-1)")+btn("\u21BB 1\u00B0",false,"rotateSelection(1)")+btn("\u21BA 5\u00B0",false,"rotateSelection(-5)")+btn("\u21BB 5\u00B0",false,"rotateSelection(5)")+"</div>";
+      p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("\u21BA 15\u00B0",false,"rotateSelection(-15)")+btn("\u21BB 15\u00B0",false,"rotateSelection(15)")+btn("\u21BA 45\u00B0",false,"rotateSelection(-45)")+btn("\u21BB 45\u00B0",false,"rotateSelection(45)")+"</div>";
+      p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("\u21BA 90\u00B0",false,"rotateSelection(-90)")+btn("\u21BB 90\u00B0",false,"rotateSelection(90)")+btn("FLIP 180\u00B0",false,"rotateSelection(180)")+"</div>";
+    }else{p+='<div class="hint">Click table to select. Shift+click for multi-select.</div>'}
+    p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("FACE ALL \u2192 STAGE",false,"faceAllStage()","#0066cc")+"</div>";
+    p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("SNAP SEL CENTER X",false,"snapSelCenterX()","#0077b6")+btn("CENTER Y",false,"snapSelCenterY()","#0077b6")+btn("CENTER XY",false,"snapSelCenterBoth()","#0077b6")+"</div>";
+    p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("ALL +15\u00B0",false,"rotateAll(15)")+btn("ALL -15\u00B0",false,"rotateAll(-15)")+"</div>";
+
+    p+='<div class="shd">MULTI-SELECT</div>';
+    p+='<div class="hint">SHIFT+CLICK tables to add to selection. Drag any selected item to move all together.</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:4px">';
+    p+=btn("SELECT ALL TABLES ("+tables.length+")",false,"snapshot();clearSel();tables.forEach(function(t){selection.push({id:t.id,tp:\'table\'})});clientTables.forEach(function(ct){selection.push({id:ct.id,tp:\'table\'})});render()","#0077b6");
+    p+='</div>';
+    if(selection.length>0){p+='<div style="font-size:13px;color:#333;font-weight:700;margin-bottom:4px">'+selection.length+' items selected</div>';}
+    if(selection.length>1)p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("SELECT ALL TABLES",false,"clearSel();tables.forEach(function(t){selection.push({id:t.id,tp:'table'})});clientTables.forEach(function(ct){selection.push({id:ct.id,tp:'table'})});render()","#0066cc")+"</div>";
+    else p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("SELECT ALL TABLES",false,"clearSel();tables.forEach(function(t){selection.push({id:t.id,tp:'table'})});clientTables.forEach(function(ct){selection.push({id:ct.id,tp:'table'})});render()","#0066cc")+"</div>";
+
+    p+='<div class="shd">QUICK LAYOUT</div>';
+    p+='<div class="hint">Preset grids:</div>';
+    p+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">';
+    [[4,2,"4x2"],[4,3,"4x3"],[4,4,"4x4"],[5,4,"5x4"],[5,5,"5x5"],[6,5,"6x5"],[6,6,"6x6"],[7,6,"7x6"],[8,7,"8x7"],[10,8,"10x8"]].forEach(function(g){
+      p+='<button class="btn" style="min-width:42px;font-size:11px" onclick="cfg.tableCols='+g[0]+';cfg.tableRows='+g[1]+';autoPlace('+(g[0]*g[1])+')">'+g[2]+'</button>'});
+    p+='</div>';
+    p+='<div class="hint">Staggered presets:</div>';
+    p+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">';
+    [["5,6,5","5-6-5"],["4,5,6,5,4","Chevron"],["6,7,7,6","6-7-7-6"],["5,6,6,6,5","5-6x3-5"],["8,9,9,8","8-9-9-8"],["6,7,8,7,6","Diamond"]].forEach(function(g){
+      p+='<button class="btn" style="min-width:50px;font-size:11px" onclick="parseCustomLayout(\''+g[0]+'\');applyCustomLayout()">'+g[1]+'</button>'});
+    p+='</div>';
+    p+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">';
+    [6,10,16,24,38,50,75,109].forEach(function(n){p+='<button class="btn" style="min-width:42px" onclick="autoPlace('+n+')">'+n+"T</button>"});
+    p+='</div><div class="shd">PLACE &amp; EDIT</div><div style="display:flex;flex-direction:column;gap:5px">';
+    p+=btn(mode==="placeTable"?"\u2714 PLACING...":"+ ADD TABLE",mode==="placeTable","mode=mode==='placeTable'?'select':'placeTable';render()","#cc0000");
+    p+=btn(mode==="placeClient"?"\u2714 CLICK CLIENT":"\u2295 CLIENT TABLE",mode==="placeClient","mode=mode==='placeClient'?'select':'placeClient';render()","#0066cc");
+    p+='<div style="display:flex;gap:6px;margin-top:5px;margin-bottom:3px">';
+    p+='<div class="fr" style="flex:1;margin:0"><label>Client W (ft)</label><input type="number" value="'+cfg.clientW+'" style="width:52px;text-align:right;font-size:13px;padding:5px 6px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="cfg.clientW=Number(this.value);render()"></div>';
+    p+='<div class="fr" style="flex:1;margin:0"><label>D (\")</label><input type="number" value="'+cfg.clientD+'" style="width:52px;text-align:right;font-size:13px;padding:5px 6px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="cfg.clientD=Number(this.value);render()"></div></div>';
+    if(selection.length>0)p+=btn("\u2715 DELETE SELECTED ("+selection.length+")",true,"deleteSel()","#cc0000");
+    p+=btn("CLEAR ALL TABLES",false,"tables=[];clientTables=[];clearSel();render()")+"</div>"
+  }
+
+  if(tab==="prod"){
+    p+='<div class="shd">ADD PRODUCTION ELEMENTS</div>';
+    p+='<div class="hint">Click to add, then click on drawing to place. For drape: click and drag to draw length and angle.</div>';
+    for(var ci2=0;ci2<ELEM_CATALOG.length;ci2++){var cat=ELEM_CATALOG[ci2];
+      p+='<div style="font-size:11px;font-weight:700;color:'+cat.items[0].color+';margin-top:10px;margin-bottom:4px;letter-spacing:1px">'+cat.cat.toUpperCase()+"</div><div class='elem-grid'>";
+      for(var ii2=0;ii2<cat.items.length;ii2++){var it=cat.items[ii2];var isAct=(mode==="placeElem"&&placingElemType===it.type);p+='<button style="'+(isAct?"background:#333;color:#fff;border-color:#333":"")+'" onclick="addElem(\''+it.type+"')\">"+it.label+"</button>"}p+="</div>"}
+
+    // Selected element controls
+    var elSel=selection.find(function(s){return s.tp==="elem"});
+    if(elSel){var selEl=getObj(elSel.id,"elem");
+      if(selEl){p+='<div class="shd">SELECTED: '+selEl.label+"</div>";
+        p+='<div class="fr"><label>Rotation \u00B0</label><input type="number" value="'+(selEl.rot||0)+'" step="1" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="var e=elems.find(function(x){return x.id===\''+selEl.id+'\'}); if(e){e.rot=Number(this.value)%360}render()"></div>';
+        p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("\u21BA 1\u00B0",false,"rotateSelection(-1)")+btn("\u21BB 1\u00B0",false,"rotateSelection(1)")+btn("\u21BA 5\u00B0",false,"rotateSelection(-5)")+btn("\u21BB 5\u00B0",false,"rotateSelection(5)")+"</div>";
+        p+='<div style="display:flex;gap:4px;margin-bottom:4px">'+btn("\u21BA 15\u00B0",false,"rotateSelection(-15)")+btn("\u21BB 15\u00B0",false,"rotateSelection(15)")+btn("\u21BA 45\u00B0",false,"rotateSelection(-45)")+btn("\u21BB 45\u00B0",false,"rotateSelection(45)")+"</div>";
+        p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("\u21BA 90\u00B0",false,"rotateSelection(-90)")+btn("\u21BB 90\u00B0",false,"rotateSelection(90)")+btn("FLIP",false,"rotateSelection(180)")+"</div>";
+        if(selEl.isMounted){
+          p+='<div class="fr"><label>Monitor Size (in)</label><input type="number" value="'+(selEl.monSize||55)+'" step="1" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="setMonSize(\''+selEl.id+'\',Number(this.value))"></div>';
+          p+='<div style="display:flex;gap:4px;margin-bottom:6px">'+btn("TRUSS",selEl.mountType==="truss","setMonMount(\'"+selEl.id+"\',\'truss\')")+btn("PIPE+DRAPE",selEl.mountType==="pd","setMonMount(\'"+selEl.id+"\',\'pd\')")+'</div>';
+        }
+        if(selEl.isDoor){
+          p+='<div class="fr"><label>Door Width (\")</label><input type="number" value="'+(selEl.doorW||36)+'" step="1" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="var e=elems.find(function(x){return x.id===\''+selEl.id+'\'}); if(e){e.doorW=Number(this.value);e.w=e.isDouble?Number(this.value):Number(this.value);e.h=e.isDouble?Number(this.value)/2:Number(this.value)}render()"></div>';
+        }
+        p+='<div class="fr"><label>Width (px)</label><input type="number" value="'+selEl.w+'" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="var e=elems.find(function(x){return x.id===\''+selEl.id+"'});if(e)e.w=Number(this.value);render()\"></div>";
+        p+='<div class="fr"><label>Height (px)</label><input type="number" value="'+selEl.h+'" style="width:70px;text-align:right;font-size:13px;padding:5px 8px;border:1px solid #bbb;border-radius:4px;font-family:Arial" onchange="var e=elems.find(function(x){return x.id===\''+selEl.id+"'});if(e)e.h=Number(this.value);render()\"></div>";
+        p+='<div style="display:flex;gap:4px;margin-top:6px">'+btn("SNAP CENTER X",false,"snapSelCenterX()","#0077b6")+btn("SNAP CENTER Y",false,"snapSelCenterY()","#0077b6")+btn("SNAP XY",false,"snapSelCenterBoth()","#0077b6")+'</div>';
+        p+='<div style="display:flex;gap:4px;margin-top:4px">'+btn("\u2715 DELETE",true,"deleteSel()","#cc0000")+"</div>"}}
+
+    if(mode==="placeElem"){p+='<div style="display:flex;gap:4px;margin-bottom:8px">'+btn("\u2716 STOP PLACING",true,"mode=\'select\';placingElemType=null;render()","#cc0000")+'</div>';}
+    p+='<div class="shd" style="margin-top:12px">PLACED ('+elems.length+")</div>";
+    if(elems.length===0)p+='<div class="hint">No elements placed yet</div>';
+    for(var ei3=0;ei3<elems.length;ei3++){p+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #eee;align-items:center"><span style="color:#444">'+elems[ei3].label+'</span><button class="btn" style="flex:none;padding:4px 8px;font-size:11px" onclick="clearSel();selection.push({id:\''+elems[ei3].id+"',tp:'elem'});render()\">\u270E</button></div>"}
+  }
+
+  if(tab==="tech"){
+    p+='<div class="shd">ROBO CAM</div><div style="display:flex;gap:4px;margin-bottom:8px">'+btn(cfg.roboCam?"ENABLED":"DISABLED",cfg.roboCam,"cfg.roboCam=!cfg.roboCam;render()","#7b1fa2")+"</div>";
+    if(cfg.roboCam)p+=fld("Height (ft)","roboCamH","number",70);
+    p+='<div class="shd">MEASURE TOOL</div>';
+    p+='<div class="hint">Click two points on the drawing to measure distance in feet.</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:6px">';
+    p+=btn("\u2714 START MEASURE",mode==="measure1"||mode==="measure2","mode=\'measure1\';measurePt1=null;measurePt2=null;render()","#e65100");
+    p+=btn("DELETE RECENT",false,"if(measuredLines.length){measuredLines.pop();}else{measurePt1=null;measurePt2=null;}mode=\'select\';render()");
+    p+='</div>';
+    p+='<div style="display:flex;gap:4px;margin-bottom:6px">';
+    p+=btn("CLEAR ALL",false,"measuredLines=[];measurePt1=null;measurePt2=null;mode=\'select\';render()");
+    p+='</div>';
+    if(measurePt1&&measurePt2){var md2=Math.sqrt((measurePt2.x-measurePt1.x)*(measurePt2.x-measurePt1.x)+(measurePt2.y-measurePt1.y)*(measurePt2.y-measurePt1.y));
+      p+='<div style="background:#fff3e0;padding:8px 10px;border-radius:4px;border:1px solid #e65100;margin-bottom:8px;font-size:14px;font-weight:900;color:#e65100;text-align:center">'+(md2/PX).toFixed(1)+"' ("+(md2/PX*12).toFixed(0)+'\")</div>';}
+    p+='<div class="shd">OVERLAYS</div><div style="display:flex;flex-direction:column;gap:5px">';
+    p+=btn("TECH POSITIONS "+(cfg.showTech?"ON":"OFF"),cfg.showTech,"cfg.showTech=!cfg.showTech;render()");
+    p+=btn("RIGGING POINTS "+(cfg.showRigging?"ON":"OFF"),cfg.showRigging,"cfg.showRigging=!cfg.showRigging;render()");
+    p+=btn("DIMENSIONS "+(cfg.showDims?"ON":"OFF"),cfg.showDims,"cfg.showDims=!cfg.showDims;render()");
+    p+=btn("WALL DIST (screens/drape) "+(cfg.showWallDist?"ON":"OFF"),cfg.showWallDist,"cfg.showWallDist=!cfg.showWallDist;render()","#0077b6");
+    p+=btn("WALL DIST (all objects) "+(cfg.showWallDistAll?"ON":"OFF"),cfg.showWallDistAll,"cfg.showWallDistAll=!cfg.showWallDistAll;render()","#0077b6");
+    p+=btn("ENTRANCE "+(cfg.showEntrance?"ON":"OFF"),cfg.showEntrance,"cfg.showEntrance=!cfg.showEntrance;render()")+"</div>";
+    if(cfg.showEntrance){p+='<div style="font-size:12px;color:#666;margin-top:8px;margin-bottom:4px">Entrance Side:</div><div style="display:flex;gap:4px">';
+      ["top","bottom","left","right"].forEach(function(s){p+=btn(s.toUpperCase(),cfg.entranceSide===s,"cfg.entranceSide='"+s+"';render()")});p+="</div>"}
+  }
+  $("#pc").innerHTML=p
+}
+
+render();
+setTimeout(function(){ fitCadToView(); }, 50);
+</script>
+</body>
+</html>
